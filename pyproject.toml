@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hccfhir"
+version = "0.0.1"
+authors = [
+  { name="Yubin Park", email="yubin.park@mimilabs.ai" },
+]
+description = "HCC Algorithm for FHIR Resources"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/mimilabs/hccfhir"
+Issues = "https://github.com/mimilabs/hccfhir/issues"
+
+[tool.hatch.build]
+packages = ["src/hccfhir"]
+include = [
+    "src/hccfhir/data/*.json",
+    "src/hccfhir/data/*.csv"
+]
