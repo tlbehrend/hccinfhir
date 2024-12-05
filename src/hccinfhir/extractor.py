@@ -93,16 +93,16 @@ def extract_mde(eob_data: dict) -> List[dict]:
             # Get associated data
             dos = get_date(item.servicedPeriod) or get_date(eob.billablePeriod)
             dx_codes = [dx_lookup[seq] for seq in (item.diagnosisSequence or [])
-                       if seq in dx_lookup] or None
+                       if seq in dx_lookup]
             
             # Build result
             result = {k: v for k, v in {
-                'pr': pr_code,
-                'dx': dx_codes,
-                'type': claim_type,
-                'prvdr_spclty': specialty,
-                'dos': dos
-            }.items() if v is not None}
+                'procedure_code': pr_code,
+                'diagnosis_codes': dx_codes,
+                'claim_type': claim_type,
+                'provider_specialty': specialty,
+                'service_date': dos
+            }.items()}
             
             results.append(result)
             

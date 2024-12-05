@@ -34,7 +34,7 @@
       "role": {
         "coding": [
           {
-            "system": "http://hl7.org/fhir/claimcareteamrole",
+            "system": "http://hl7.org/fhir/us/carin-bb/CodeSystem/C4BBClaimCareTeamRole",
             "code": "performing",
             "display": "Performing"
           }

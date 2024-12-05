@@ -61,11 +61,11 @@ from hccinfhir import HCCInFHIR
 hcc_processor = HCCInFHIR()
 mde_list = hcc_processor.extract_mde_list(eob_list)
 filtered_mde = hcc_processor.apply_filters(mde_list)  # future
-raf_score = hcc_processor.calculate_raf(filtered_mde, demographic_data)  # future
+raf_details = hcc_processor.calculate_raf(filtered_mde, demographic_data)  # future
 ```
 
 ## Dependencies
-- Pydantic
+- Pydantic >= 2.10.3
 - Standard Python libraries
 
 ## Contributing

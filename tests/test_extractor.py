@@ -15,39 +15,39 @@ def test_extract_mde_basic():
     
     assert len(mde) == 2
     for mde_item in mde:
-        assert mde_item["dx"] == ["F411"]
+        assert mde_item["diagnosis_codes"] == ["F411"]
     
     eob_data = load_sample_eob(2)
     mde = extract_mde(eob_data)
-    
+
     assert len(mde) == 1
     mde_item = mde[0]
-    assert mde_item["pr"] == "99213"
-    assert mde_item["dx"] == ["E11.9"]
-    assert mde_item["type"] == "40"
-    assert mde_item["prvdr_spclty"] == "01"
-    assert mde_item["dos"] == "2023-01-01"
+    assert mde_item["procedure_code"] == "99213"
+    assert mde_item["diagnosis_codes"] == ["E11.9"]
+    assert mde_item["claim_type"] == "40"
+    assert mde_item["provider_specialty"] == "01"
+    assert mde_item["service_date"] == "2023-01-01"
 
     eob_data = load_sample_eob(3)
     mde = extract_mde(eob_data)
     assert len(mde) == 1
     for mde_item in mde:
-        assert len(mde_item["dx"]) == 2
+        assert len(mde_item["diagnosis_codes"]) == 2
     
 
-def test_extract_mde_missing_diagnosis_sequence():
+def test_extract_mde_missing_diagnosis_sequence():  
     eob_data = load_sample_eob()
     eob_data["item"][0].pop("diagnosisSequence")
     
     mde = extract_mde(eob_data)
-    assert mde[0]["dx"] == []
+    assert mde[0]["diagnosis_codes"] == []
 
 def test_extract_mde_missing_serviced_period():
     eob_data = load_sample_eob()
     eob_data["item"][0].pop("servicedPeriod")
     
     mde = extract_mde(eob_data)
-    assert mde[0]["dos"] == "2023-01-01"  # Should fall back to billablePeriod
+    assert mde[0]["service_date"] == "2023-01-01"  # Should fall back to billablePeriod
 
 def test_extract_mde_invalid_data():
     with pytest.raises(ValueError):
