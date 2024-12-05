@@ -1,10 +1,10 @@
 import pytest
 import importlib.resources
-from hccfhir.extractor import extract_mde, extract_mde_list
+from hccinfhir.extractor import extract_mde, extract_mde_list
 import json
 
 def load_sample_eob(casenum=2):
-   with importlib.resources.open_text('hccfhir.data', 
+   with importlib.resources.open_text('hccinfhir.data', 
                                       f'sample_eob_{casenum}.json') as f:
        return json.load(f)
 

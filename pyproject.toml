@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "hccfhir"
-version = "0.0.1"
+name = "hccinfhir"
+version = "0.0.9"
 authors = [
   { name="Yubin Park", email="yubin.park@mimilabs.ai" },
 ]
@@ -16,14 +16,38 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
+dependencies = ["pydantic>=2.10.3"]
 
 [project.urls]
-Homepage = "https://github.com/mimilabs/hccfhir"
-Issues = "https://github.com/mimilabs/hccfhir/issues"
+Homepage = "https://github.com/mimilabs/hccinfhir"
+Issues = "https://github.com/mimilabs/hccinfhir/issues"
 
 [tool.hatch.build]
-packages = ["src/hccfhir"]
+packages = ["src/hccinfhir"]
 include = [
-    "src/hccfhir/data/*.json",
-    "src/hccfhir/data/*.csv"
+    "*.py",
+    "*.json",
+    "*.csv"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hccinfhir"]
+
+[tool.coverage.run]
+source_pkgs = ["hccinfhir"]
+branch = true
+parallel = true
+omit = [
+  "src/hccinfhir/__about__.py",
+]
+
+[tool.coverage.paths]
+hccinfhir = ["src/hccinfhir", "*/hccinfhir/src/hccinfhir"]
+tests = ["tests", "*/hccinfhir/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
 ]
