@@ -1,7 +1,7 @@
 import pytest
 import importlib.resources
 from hccinfhir.extractor import extract_sld, extract_sld_list
-from hccinfhir.extractor_837 import X12Parser, parse_diagnosis_codes, get_segment_value, ClaimData
+from hccinfhir.extractor_837 import ClaimData, parse_date, parse_amount
 
 def load_sample_837(casenum=0):
     with importlib.resources.open_text('hccinfhir.data', 
@@ -10,41 +10,21 @@ def load_sample_837(casenum=0):
 
 # X12Parser Tests
 def test_parse_date():
-    parser = X12Parser()
-    assert parser.parse_date("20230415") == "2023-04-15"
-    assert parser.parse_date("") is None
-    assert parser.parse_date("2023041") is None
-    assert parser.parse_date("abcdefgh") is None
+    assert parse_date("20230415") == "2023-04-15"
+    assert parse_date("") is None
+    assert parse_date("2023041") is None
+    assert parse_date("abcdefgh") is None
 
 def test_parse_amount():
-    parser = X12Parser()
-    assert parser.parse_amount("123.45") == 123.45
-    assert parser.parse_amount("0") == 0.0
-    assert parser.parse_amount("invalid") is None
-    assert parser.parse_amount("") is None
+    assert parse_amount("123.45") == 123.45
+    assert parse_amount("0") == 0.0
+    assert parse_amount("invalid") is None
+    assert parse_amount("") is None
 
-def test_parse_diagnosis_codes():
-    """Test diagnosis code parsing from HI segment"""
-    segment = ['HI', 'ABK:F1120', 'ABK:F4321', 'ABF:Z9912']
-    dx_lookup = parse_diagnosis_codes(segment)
-    assert dx_lookup == {'1': 'F1120', '2': 'F4321', '3': 'Z9912'}
-    
-    # Test empty segment
-    assert parse_diagnosis_codes(['HI']) == {}
-    
-    # Test invalid format
-    assert parse_diagnosis_codes(['HI', 'INVALID']) == {}
-
-def test_get_segment_value():
-    """Test safe segment value retrieval"""
-    segment = ['NM1', 'IL', 'DOE', 'JOHN']
-    assert get_segment_value(segment, 2) == 'DOE'
-    assert get_segment_value(segment, 1) == 'IL'
-    assert get_segment_value(segment, 10) is None
 
 def test_claim_data_initialization():
     """Test ClaimData class initialization"""
-    claim = ClaimData("professional")
+    claim = ClaimData(claim_id="12345", claim_type="professional")
     assert claim.claim_type == "professional"
     assert claim.patient_id is None
     assert claim.performing_provider_npi is None
@@ -132,17 +112,6 @@ def test_extract_sld_multiple_service_lines():
     assert sld[0].procedure_code == "99213"
     assert sld[1].procedure_code == "99214"
 
-def test_process_service_line():
-    from hccinfhir.extractor_837 import process_service_line
-    segments = [
-        ['SV1', 'HC:99213', '50'],
-        ['LIN', 'N4', 'N4', '12345678901'],
-        ['DTP', '472', 'D8', '20230415'],
-        ['LX', '2']
-    ]
-    ndc, service_date = process_service_line(segments, 0)
-    assert ndc == '12345678901'
-    assert service_date == '2023-04-15'
 
 def test_extract_sld_list_837():
     x12_data_list = [

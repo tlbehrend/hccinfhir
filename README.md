@@ -1,8 +1,16 @@
 # `hccinfhir` (HCC in FHIR)
-HCC (Hierarchical Condition Category) Algorithm Implementation for FHIR Resources
+A Python library for extracting standardized service-level data from FHIR ExplanationOfBenefit resources, with a focus on supporting HCC (Hierarchical Condition Category) risk adjustment calculations.
 
-## Overview
-`hccinfhir` implements the CMS-HCC Risk Adjustment model using FHIR (Fast Healthcare Interoperability Resources) data. It processes Blue Button 2.0 API (BCDA) data to calculate Hierarchical Condition Category (HCC) Risk Adjustment Factors (RAF).
+## Features
+- Extract diagnosis codes, procedures, providers, and other key data elements from FHIR EOBs
+- Support for both BCDA (Blue Button 2.0) and standard FHIR R4 formats
+- Pydantic models for type safety and data validation
+- Standardized Service Level Data (SLD) output format
+
+## Installation
+```bash
+pip install hccinfhir
+```
 
 ## Why FHIR-Based HCC Processing?
 Risk Adjustment calculations traditionally rely on processed claims data, leading to information loss and reconciliation challenges. `hccinfhir` processes FHIR resources directly because:
@@ -10,11 +18,11 @@ Risk Adjustment calculations traditionally rely on processed claims data, leadin
 - Risk Adjustment requires multiple data elements beyond diagnosis codes
 - Direct processing eliminates data transformation errors and simplifies reconciliation
 
-## Data Flexibility
-While built for native FHIR processing, `hccinfhir` works with any data source that can be transformed into the MDE format:
+## Data Model & Flexibility
+While built for native FHIR processing, `hccinfhir` works with any data source that can be transformed into the SLD (Service Level Data) format:
 
 ```python
-mde = [{
+sld = [{
     "procedure_code": "99214",
     "diagnosis_codes": ["E11.9", "I10"],
     "claim_type": "71",
@@ -23,45 +31,47 @@ mde = [{
 }, ...]
 ```
 
-## Components
+For more details on the SLD format, see the `models.py` file.
+
+## Core Components
 
 ### 1. Extractor Module
 Processes FHIR ExplanationOfBenefit resources to extract Minimum Data Elements (MDE):
 ```python
-from hccinfhir.extractor import extract_mde, extract_mde_list
+from hccinfhir.extractor import extract_sld, extract_sld_list
 
-mde = extract_mde(eob_data)  # Process single EOB
+sld = extract_sld(eob_data)  # Process single EOB
 
-mde_list = extract_mde_list([eob1, eob2])  # Process multiple EOBs
+sld_list = extract_sld_list([eob1, eob2])  # Process multiple EOBs
 ```
 
-### 2. Logic Module (In Development)
+### 2. Filter Module
+Implements claim filtering rules:
+- Inpatient/outpatient criteria - Type of Bill + Eligible CPT/HCPCS
+- Professional service requirements - Eligible CPT/HCPCS
+- Provider validation (Not in scope for this release, applicable to RAPS)
+```python
+from hccinfhir.filter import apply_filter
+
+filtered_sld = apply_filter(sld_list)
+```
+
+
+### 3. Logic Module (In Development)
 Implements core HCC calculation logic:
 - Maps diagnosis codes to HCC categories
 - Applies hierarchical rules and interactions
 - Calculates final RAF scores
 - Integrates with standard CMS data files
 
-### 3. Filter Module (In Development)
-Implements claim filtering rules:
-- Inpatient/outpatient criteria
-- Professional service requirements
-- Provider validation
-- Date range filtering
-
-## Installation
-```bash
-pip install hccinfhir
-```
-
 ## Usage
 ```python
 from hccinfhir import HCCInFHIR
 
 hcc_processor = HCCInFHIR()
-mde_list = hcc_processor.extract_mde_list(eob_list)
-filtered_mde = hcc_processor.apply_filters(mde_list)  # future
-raf_details = hcc_processor.calculate_raf(filtered_mde, demographic_data)  # future
+sld_list = hcc_processor.extract_sld_list(eob_list)
+filtered_sld = hcc_processor.apply_filters(sld_list)  # future
+raf_details = hcc_processor.calculate_raf(filtered_sld, demographic_data)  # future
 ```
 
 ## Testing
@@ -74,6 +84,79 @@ $ python3 -m pytest tests/*
 ## Dependencies
 - Pydantic >= 2.10.3
 - Standard Python libraries
+
+## Research: FHIR BCDA and 837 Field Mapping Analysis
+
+### Core Identifiers
+| Field | 837 Source | FHIR BCDA Source | Alignment Analysis |
+|-------|------------|------------------|-------------------|
+| claim_id | CLM01 segment | eob.id | ✓ Direct mapping |
+| patient_id | NM109 when NM101='IL' | eob.patient.reference (last part after '/') | ✓ Aligned but different formats |
+
+### Provider Information
+| Field | 837 Source | FHIR BCDA Source | Alignment Analysis |
+|-------|------------|-------------------|-------------------|
+| performing_provider_npi | NM109 when NM101='82' and NM108='XX' | careTeam member with role 'performing'/'rendering' | ✓ Aligned |
+| billing_provider_npi | NM109 when NM101='85' and NM108='XX' | contained resources with NPI system identifier | ✓ Conceptually aligned |
+| provider_specialty | PRV03 when PRV01='PE' | careTeam member qualification with specialty system | ✓ Aligned but different code systems |
+
+### Claim Type Information
+| Field | 837 Source | FHIR BCDA Source | Alignment Analysis |
+|-------|------------|-------------------|-------------------|
+| claim_type | GS08 (mapped via CLAIM_TYPES) | eob.type with claim_type system | ✓ Aligned but different coding |
+| facility_type | CLM05-1 (837I only) | facility.extension with facility_type system | ✓ Aligned for institutional claims |
+| service_type | CLM05-2 (837I only) | extension or eob.type with service_type system | ✓ Aligned for institutional claims |
+
+### Service Line Information
+| Field | 837 Source | FHIR BCDA Source | Alignment Analysis |
+|-------|------------|-------------------|-------------------|
+| procedure_code | SV1/SV2 segment, element 2 | item.productOrService with pr system | ✓ Aligned |
+| ndc | LIN segment after service line | item.productOrService with ndc system or extension | ✓ Aligned but different locations |
+| quantity | SV1/SV2 element 4 | item.quantity.value | ✓ Direct mapping |
+| quantity_unit | SV1/SV2 element 5 | item.quantity.unit | ✓ Direct mapping |
+| service_date | DTP segment with qualifier 472 | item.servicedPeriod or eob.billablePeriod | ✓ Aligned |
+| place_of_service | SV1 element 6 | item.locationCodeableConcept with place_of_service system | ✓ Aligned |
+| modifiers | SV1/SV2 segment, additional qualifiers | item.modifier with pr system | ✓ Aligned |
+
+### Diagnosis Information
+| Field | 837 Source | FHIR BCDA Source | Alignment Analysis |
+|-------|------------|-------------------|-------------------|
+| linked_diagnosis_codes | SV1/SV2 diagnosis pointers + HI segment codes | item.diagnosisSequence + diagnosis lookup | ✓ Aligned but different structure |
+| claim_diagnosis_codes | HI segment codes | diagnosis array with icd10cm/icd10 systems | ✓ Aligned |
+
+### Additional Fields
+| Field | 837 Source | FHIR BCDA Source | Alignment Analysis |
+|-------|------------|-------------------|-------------------|
+| allowed_amount | Not available in 837 | item.adjudication with 'eligible' category | ⚠️ Only in FHIR |
+
+### Key Differences and Notes
+
+1. **Structural Differences**:
+   - 837 uses a segment-based approach with positional elements
+   - FHIR uses a nested object structure with explicit systems and codes
+
+2. **Code Systems**:
+   - FHIR explicitly defines systems for each code (via SYSTEMS constant)
+   - 837 uses implicit coding based on segment position and qualifiers
+
+3. **Data Validation**:
+   - FHIR implementation uses Pydantic models for validation
+   - 837 implements manual validation and parsing
+
+4. **Diagnosis Handling**:
+   - 837: Direct parsing from HI segment with position-based lookup
+   - FHIR: Uses sequence numbers and separate diagnosis array
+
+5. **Provider Information**:
+   - 837: Direct from NM1 segments with role qualifiers
+   - FHIR: Through careTeam structure with role coding
+
+### TODO: Enhancement Suggestions
+
+1. Consider adding validation for code systems in 837 parser to match FHIR's explicitness
+2. Standardize date handling between both implementations
+3. Add support for allowed_amount in 837 if available in different segments
+4. Consider adding more robust error handling in both implementations
 
 ## Contributing
 Join us at [mimilabs](https://mimilabs.ai/signup). Reference data available in MIMILabs data lakehouse.

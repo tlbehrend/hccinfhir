@@ -41,11 +41,12 @@ def test_apply_filter_eob():
     filtered_sld_list = apply_filter(sld_list)
     
     assert len(sld_list) == 204
-    assert len(filtered_sld_list) == 86
+    # after the filtering is applied, we have a lot less ServiceLevelData objects
+    assert len(filtered_sld_list) == 15
 
     filtered_sld_list = apply_filter(sld_list, professional_cpt=set(['E0570']))
     
-    assert len(filtered_sld_list) == 84
+    assert len(filtered_sld_list) == 13
 
 def test_apply_filter_837():
 

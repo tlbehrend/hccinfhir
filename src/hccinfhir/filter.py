@@ -33,7 +33,9 @@ def apply_filter(
         if item.facility_type and item.service_type:
             if item.facility_type in inpatient_facility_types and item.service_type in inpatient_service_types:
                 filtered_data.append(item)
-            elif item.facility_type in outpatient_facility_types and item.service_type in outpatient_service_types:
+            elif (item.facility_type in outpatient_facility_types and 
+                  item.service_type in outpatient_service_types and
+                  item.procedure_code in professional_cpt):
                 filtered_data.append(item)
         else:
             if item.procedure_code in professional_cpt:
