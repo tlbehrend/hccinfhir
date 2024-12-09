@@ -1,8 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, AliasChoices
-from typing import List, Optional, Literal, TypeVar, Any
+from typing import List, Optional, Literal, TypedDict
 from datetime import date
-from models import MinimalDataElement
-
+from .models import ServiceLevelData
 
 # Core system URLs for different code types
 SYSTEMS = {
@@ -19,6 +18,7 @@ SYSTEMS = {
     'ndc': 'http://hl7.org/fhir/sid/ndc'
 }
 
+
 # FHIR Resource Models
 class Coding(BaseModel):
     system: Optional[str] = None
@@ -27,6 +27,7 @@ class Coding(BaseModel):
 
 class CodeableConcept(BaseModel):
     coding: Optional[List[Coding]] = []
+    extension: Optional[List[dict]] = None 
 
 class Identifier(BaseModel):
     type: Optional[CodeableConcept] = None
@@ -83,6 +84,7 @@ class ExplanationOfBenefit(BaseModel):
     patient: Optional[dict] = None
     facility: Optional[dict] = None
     extension: Optional[List[dict]] = None
+    contained: Optional[List[dict]] = None
 
 class FHIRExtractor:
     """Helper class for extracting data from FHIR resources"""
@@ -112,7 +114,7 @@ class FHIRExtractor:
         if not provider or not provider.identifier:
             return None
         return (provider.identifier.value 
-                if any(c.code == 'npi' for c in (provider.identifier.type.coding or [])) 
+                if any(c.system == SYSTEMS['npi'] for c in (provider.identifier.type.coding or [])) 
                 else None)
 
     @staticmethod
@@ -133,7 +135,20 @@ class FHIRExtractor:
                 return ext.get('valueCoding', {}).get('code')
         return None
 
-def extract_mde_fhir(eob_data: dict) -> List[MinimalDataElement]:
+class DiagnosisLookup(TypedDict):
+    sequence: int
+    code: str
+
+class CommonData(TypedDict):
+    claim_type: Optional[str]
+    provider_specialty: Optional[str]
+    performing_provider_npi: Optional[str]
+    patient_id: Optional[str]
+    facility_type: Optional[str]
+    service_type: Optional[str]
+    billing_provider_npi: Optional[str]
+
+def extract_sld_fhir(eob_data: dict) -> List[ServiceLevelData]:
     """Extract medical data elements from FHIR ExplanationOfBenefit"""
     try:
         eob = ExplanationOfBenefit.model_validate(eob_data)
@@ -158,7 +173,7 @@ def extract_mde_fhir(eob_data: dict) -> List[MinimalDataElement]:
             'claim_type': extractor.get_code(eob.type, SYSTEMS['claim_type']),
             'provider_specialty': (extractor.get_code(rendering_provider.qualification, SYSTEMS['specialty']) 
                                  if rendering_provider else None),
-            'provider_npi': (extractor.get_npi(rendering_provider.provider) 
+            'performing_provider_npi': (extractor.get_npi(rendering_provider.provider) 
                            if rendering_provider else None),
             'patient_id': (eob.patient.get('reference', '').split('/')[-1] 
                          if eob.patient else None),
@@ -166,33 +181,40 @@ def extract_mde_fhir(eob_data: dict) -> List[MinimalDataElement]:
                                                           SYSTEMS['facility_type']) 
                             if eob.facility else None),
             'service_type': extractor.find_extension_code(eob_data.get('extension', []), 
-                                                        SYSTEMS['service_type'])
+                                                        SYSTEMS['service_type']),
+            'billing_provider_npi': next((i.get('value') 
+                   for c in (eob.contained or [])
+                   for i in c.get('identifier', [])
+                   if i.get('system') == 'http://hl7.org/fhir/sid/us-npi'), None)
         }
+
+        if common_data['facility_type'] is not None and common_data['service_type'] is None:
+            # In the  old version of BCDA, the service_type was found in `type`
+            common_data['service_type'] = extractor.get_code(eob.type, SYSTEMS['service_type'])
 
         # Process each service item
         results = []
         for item in eob.item:
+            
             procedure_code = extractor.get_code(item.productOrService, SYSTEMS['pr']) if item.productOrService else None
+            
             ndc = extractor.get_code(item.productOrService, SYSTEMS['ndc']) if item.productOrService else None
+            if ndc is None and item.productOrService and 'extension' in item.productOrService:
+                 ndc = extractor.find_extension_code(item.productOrService.get('extension', []),
+                                              SYSTEMS['ndc'])
 
-            if ndc is None and item.productOrService.extension:
-                ndc = next(
-                    (ext.get('valueCoding', {}).get('code')
-                    for ext in item.productOrService.extension
-                    if ext.get('url') == SYSTEMS['ndc']),
-                    None
-                ) 
-                
             if not procedure_code and not ndc:
                 continue
+
             results.append({
                 **common_data,
                 'procedure_code': extractor.get_code(item.productOrService, SYSTEMS['pr']) if item.productOrService else None,
                 'ndc': extractor.get_code(item.productOrService, SYSTEMS['ndc']) if item.productOrService else None,
                 'quantity': item.quantity.value if item.quantity else None,
                 'quantity_unit': item.quantity.unit if item.quantity else None,
-                'diagnosis_codes': [dx_lookup[seq] for seq in (item.diagnosisSequence or []) 
+                'linked_diagnosis_codes': [dx_lookup[seq] for seq in (item.diagnosisSequence or []) 
                                     if seq in dx_lookup],
+                'claim_diagnosis_codes': list(dx_lookup.values()),
                 'service_date': (extractor.get_date(item.servicedPeriod) or 
                                 extractor.get_date(eob.billablePeriod)),
                 'place_of_service': extractor.get_code(item.locationCodeableConcept, 
@@ -201,10 +223,12 @@ def extract_mde_fhir(eob_data: dict) -> List[MinimalDataElement]:
                             for m in (item.modifier or []) if m],
                     'allowed_amount': extractor.get_allowed_amount(item)
                 })
+        
         if len(results) == 0:
             results.append({
                 **common_data,
-                'diagnosis_codes': list(dx_lookup.values()),
+                'linked_diagnosis_codes': [],
+                'claim_diagnosis_codes': list(dx_lookup.values()),
                 'service_date': extractor.get_date(eob.billablePeriod),
                 'procedure_code': None,
                 'ndc': None,
@@ -214,9 +238,10 @@ def extract_mde_fhir(eob_data: dict) -> List[MinimalDataElement]:
                 'modifiers': [],
                 'allowed_amount': None
             })
-        return results
+        
+        return [ServiceLevelData.model_validate(r) for r in results]
 
-    except Exception as e:
+    except ValueError as e:
         raise ValueError(f"Error processing EOB: {str(e)}")
 
 

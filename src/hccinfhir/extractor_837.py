@@ -1,177 +1,170 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Tuple
-from datetime import date, datetime
-from models import MinimalDataElement
+from typing import List, Optional, Tuple, Dict
+from .models import ServiceLevelData
+import re
 
 class X12Parser:
-    """Helper class to parse X12 segments"""
+    """Parser for X12 837 Professional and Institutional claims"""
+    
+    VERSION_MAP = {
+        "005010X222A1": "professional",     # 837P
+        "005010X223A2": "institutional"     # 837I
+    }
     
     @staticmethod
     def parse_date(date_str: str) -> Optional[str]:
-        """Convert X12 date format to ISO format"""
-        if not date_str or len(date_str) != 8:
+        """Convert 8-digit date string to ISO format YYYY-MM-DD"""
+        if not re.match(r'^\d{8}$', date_str):
             return None
+            
         try:
-            return f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
+            year, month, day = date_str[:4], date_str[4:6], date_str[6:8]
+            return f"{year}-{month}-{day}"
         except:
             return None
 
     @staticmethod
     def parse_amount(amount_str: str) -> Optional[float]:
-        """Convert X12 amount string to float"""
+        """Convert string to float, return None if invalid"""
         try:
             return float(amount_str)
         except:
             return None
 
-class LoopTracker:
-    """Helper class to track X12 837 loops"""
-    def __init__(self):
-        self.current_2000B = False  # Subscriber Loop
-        self.current_2300 = False   # Claim Loop
-        self.current_2310B = False  # Rendering Provider Loop
-        self.current_2400 = False   # Service Line Loop
-        
-    def enter_loop(self, segment: List[str]) -> None:
-        """Track entry into loops based on segment triggers"""
-        seg_id = segment[0]
-        
-        if seg_id == 'NM1':
-            if segment[1] == 'IL':  # Subscriber Loop
-                self.current_2000B = True
-                self.reset_claim_loops()
-            elif segment[1] == '82':  # Rendering Provider
-                self.current_2310B = True
-        elif seg_id == 'CLM':  # Claim Information
-            self.current_2300 = True
-            self.current_2310B = False
-            self.current_2400 = False
-        elif seg_id == 'SV1':  # Service Line
-            self.current_2400 = True
-            
-    def reset_claim_loops(self):
-        """Reset claim-related loops"""
-        self.current_2300 = False
-        self.current_2310B = False
-        self.current_2400 = False
-        
-    def exit_loop(self, segment: List[str]) -> None:
-        """Track exit from loops based on segment triggers"""
-        seg_id = segment[0]
-        
-        if seg_id == 'SE':  # End of Transaction
-            self.__init__()
-        elif self.current_2400 and seg_id in ['LX', 'CLM']:
-            self.current_2400 = False
-        elif self.current_2310B and seg_id in ['SV1', 'CLM']:
-            self.current_2310B = False
-        elif self.current_2300 and seg_id == 'NM1' and segment[1] == 'IL':
-            self.reset_claim_loops()
+class ClaimData:
+    """Container for claim-level data"""
+    def __init__(self, claim_type: str):
+        self.patient_id = None
+        self.performing_provider_npi = None
+        self.billing_provider_npi = None
+        self.provider_specialty = None
+        self.facility_type = None
+        self.service_type = None
+        self.claim_type = claim_type
+        self.dx_lookup: Dict[str, str] = {}
 
-def process_service_line(segments: List[List[str]], start_index: int) -> Tuple[str, str]:
-    """Process NDC and service date from service line segments"""
+def get_segment_value(segment: List[str], index: int) -> Optional[str]:
+    """Safely get value from segment at given index"""
+    return segment[index] if len(segment) > index else None
+
+def parse_diagnosis_codes(segment: List[str]) -> Dict[str, str]:
+    """Extract diagnosis codes from HI segment"""
+    dx_lookup = {}
+    for pos, element in enumerate(segment[1:], 1):
+        if ':' not in element:
+            continue
+        qualifier, code = element.split(':')[:2]
+        if qualifier in ['ABK', 'ABF']:  # ICD-10 qualifiers
+            dx_lookup[str(pos)] = code
+    return dx_lookup
+
+def process_service_line(segments: List[List[str]], start_index: int) -> Tuple[Optional[str], Optional[str]]:
+    """Extract NDC and service date from service line segments"""
     ndc = None
     service_date = None
-    
     for seg in segments[start_index:]:
         if seg[0] in ['LX', 'CLM', 'SE']:
             break
-        elif seg[0] == 'LIN' and len(seg) > 3 and seg[2] == 'N4':
+        if seg[0] == 'LIN' and len(seg) > 3 and seg[2] == 'N4':
             ndc = seg[3]
         elif seg[0] == 'DTP' and seg[1] == '472':
             service_date = X12Parser.parse_date(seg[3])
-            
+        elif ndc and service_date:
+            break
     return ndc, service_date
 
-def extract_mde_837(content: str) -> List[MinimalDataElement]:
-    """Extract MDEs from 837 format"""
-    segments = [[el.strip() for el in seg.split('*')] for seg in content.split('~') if seg]
-    encounters = []
-    parser = X12Parser()
-    loop_tracker = LoopTracker()
+def extract_sld_837(content: str) -> List[ServiceLevelData]:
+    """Extract MDEs from 837 Professional or Institutional claims"""
+    if not content:
+        raise ValueError("Input X12 data cannot be empty")
     
-    # Claim-level data
-    current_data = {
-        'patient_id': None,
-        'rendering_provider_npi': None,
-        'provider_specialty': None,
-        'facility_type': None,
-        'claim_type': None,
-        'dx_lookup': {}
-    }
+    # Split content into segments
+    segments = [seg.strip().split('*') for seg in content.split('~') if seg.strip()]
+    
+    # Detect claim type from GS segment
+    claim_type = None
+    for segment in segments:
+        if segment[0] == 'GS' and len(segment) > 8:
+            claim_type = X12Parser.VERSION_MAP.get(segment[8])
+            break
+    
+    if not claim_type:
+        raise ValueError("Invalid or unsupported 837 format")
+    
+    encounters = []
+    current_data = ClaimData(claim_type)
+    in_claim_loop = False
+    in_rendering_provider_loop = False
     
     for i, segment in enumerate(segments):
-        if not segment or len(segment) < 2:
+        if len(segment) < 2:
             continue
             
         seg_id = segment[0]
-        loop_tracker.enter_loop(segment)
         
-        # Subscriber/Patient ID (2000B loop)
-        if seg_id == 'NM1' and segment[1] == 'IL' and loop_tracker.current_2000B:
-            current_data['patient_id'] = segment[9] if len(segment) > 9 else None
-            
-        # Rendering Provider NPI (2310B loop)
-        elif seg_id == 'NM1' and segment[1] == '82' and loop_tracker.current_2310B:
-            current_data['rendering_provider_npi'] = segment[9] if len(segment) > 9 else None
-            
-        # Rendering Provider Specialty (2310B loop)
-        elif seg_id == 'PRV' and segment[1] == 'PE' and loop_tracker.current_2310B:
-            current_data['provider_specialty'] = segment[3] if len(segment) > 3 else None
-            
-        # Claim Type and Facility (2300 loop)
-        elif seg_id == 'CLM' and loop_tracker.current_2300:
-            if len(segment) > 5 and ':' in segment[5]:
-                claim_info = segment[5].split(':')
-                current_data['claim_type'] = claim_info[1] if len(claim_info) > 1 else None
-                current_data['facility_type'] = claim_info[2] if len(claim_info) > 2 else None
+        # Handle different loops and segments
+        if seg_id == 'NM1':
+            if segment[1] == 'IL':  # Subscriber
+                current_data.patient_id = get_segment_value(segment, 9)
+                in_claim_loop = False
+                in_rendering_provider_loop = False
+            elif segment[1] == '82' and len(segment) > 8 and segment[8] == 'XX':  # Rendering Provider
+                current_data.performing_provider_npi = get_segment_value(segment, 9)
+                in_rendering_provider_loop = True
+            elif segment[1] == '85' and len(segment) > 8 and segment[8] == 'XX':  # Billing Provider NPI
+                current_data.billing_provider_npi = get_segment_value(segment, 9)
                 
-        # Diagnosis Codes (2300 loop)
-        elif seg_id == 'HI' and loop_tracker.current_2300:
-            current_data['dx_lookup'] = {}
-            for pos, element in enumerate(segment[1:], 1):
-                if ':' in element:
-                    qualifier, code = element.split(':')[:2]
-                    if qualifier in ['ABK', 'ABF']:  # ICD-10 qualifiers
-                        current_data['dx_lookup'][str(pos)] = code
-                        
-        # Service Line (2400 loop)
-        elif seg_id == 'SV1' and loop_tracker.current_2400:
-            # Parse procedure code and modifiers
+        elif seg_id == 'PRV' and segment[1] == 'PE' and in_rendering_provider_loop:
+            current_data.provider_specialty = get_segment_value(segment, 3)
+            
+        elif seg_id == 'CLM':
+            in_claim_loop = True
+            in_rendering_provider_loop = False
+            if claim_type == "institutional" and len(segment) > 5 and ':' in segment[5]:
+                current_data.facility_type = segment[5][0]
+                if len(segment[5]) > 0:
+                    current_data.service_type = segment[5][1]
+
+        elif seg_id == 'HI' and in_claim_loop:  # Diagnosis
+            current_data.dx_lookup = parse_diagnosis_codes(segment)
+            
+        elif seg_id in ['SV1', 'SV2'] and in_claim_loop:  # Service
+            # Parse procedure info
             proc_info = segment[1].split(':')
             procedure_code = proc_info[1] if len(proc_info) > 1 else None
             modifiers = proc_info[2:] if len(proc_info) > 2 else []
             
-            # Parse diagnosis pointers
-            dx_pointers = segment[7].split(',') if len(segment) > 7 else []
+            # Get diagnosis pointers
+            dx_pointer_pos = 7 if seg_id == 'SV1' else 11
+            dx_pointers = get_segment_value(segment, dx_pointer_pos)
             linked_diagnoses = [
-                current_data['dx_lookup'][pointer]
-                for pointer in dx_pointers
-                if pointer in current_data['dx_lookup']
+                current_data.dx_lookup[pointer]
+                for pointer in (dx_pointers.split(',') if dx_pointers else [])
+                if pointer in current_data.dx_lookup
             ]
             
-            # Process service line details
+            # Get service details
             ndc, service_date = process_service_line(segments, i)
             
-            # Create MDE
-            mde = MinimalDataElement(
+            # Create encounter record
+            mde = ServiceLevelData(
                 procedure_code=procedure_code,
-                diagnosis_codes=linked_diagnoses,
-                claim_type=current_data['claim_type'],
-                provider_specialty=current_data['provider_specialty'],
-                provider_npi=current_data['rendering_provider_npi'],
-                patient_id=current_data['patient_id'],
-                facility_type=current_data['facility_type'],
+                linked_diagnosis_codes=linked_diagnoses,
+                claim_diagnosis_codes=current_data.dx_lookup.values(),
+                claim_type=current_data.claim_type,
+                provider_specialty=current_data.provider_specialty,
+                performing_provider_npi=current_data.performing_provider_npi,
+                billing_provider_npi=current_data.billing_provider_npi,
+                patient_id=current_data.patient_id,
+                facility_type=current_data.facility_type,
+                service_type=current_data.service_type,
                 service_date=service_date,
-                place_of_service=segment[6] if len(segment) > 6 else None,
-                quantity=parser.parse_amount(segment[4]) if len(segment) > 4 else None,
-                quantity_unit=segment[5] if len(segment) > 5 else None,
+                place_of_service=get_segment_value(segment, 6) if seg_id == 'SV1' else None,
+                quantity=X12Parser.parse_amount(get_segment_value(segment, 4)),
+                quantity_unit=get_segment_value(segment, 5),
                 modifiers=modifiers,
                 ndc=ndc,
                 allowed_amount=None
             )
             encounters.append(mde)
-            
-        loop_tracker.exit_loop(segment)
     
     return encounters

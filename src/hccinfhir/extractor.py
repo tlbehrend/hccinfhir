@@ -1,66 +1,51 @@
 from typing import Union, List, Literal
-from models import MinimalDataElement
-from extractor_837 import extract_mde_837
-from extractor_fhir import extract_mde_fhir
+from .models import ServiceLevelData
+from .extractor_837 import extract_sld_837
+from .extractor_fhir import extract_sld_fhir
 
-def extract_mde(
-    data: Union[str, dict, List[dict]], 
-    format: Literal["837", "fhir"]
-) -> List[MinimalDataElement]:
+def extract_sld(
+    data: Union[str, dict], 
+    format: Literal["837", "fhir"] = "fhir"
+) -> List[ServiceLevelData]:
     """
-    Unified entry point for MDE extraction with explicit format specification
+    Unified entry point for SLD extraction with explicit format specification
     
     Args:
-        data: Input data - string for 837, dict/List[dict] for FHIR
+        data: Input data - string for 837, dict for FHIR
         format: Data format - either "837" or "fhir"
         
     Returns:
-        List of MinimalDataElement
+        List of ServiceLevelData
         
     Raises:
         ValueError: If format and data type don't match or format is invalid
+        TypeError: If data is None or wrong type
     """
-    if format == "837":
-        if not isinstance(data, str):
-            raise ValueError("837 format requires string input")
-        return extract_mde_837(data)
+    if data is None:
+        raise TypeError("Input data cannot be None")
         
+    if format == "837":
+        if not isinstance(data, str) or data == "":
+            raise TypeError(f"837 format requires string input, got {type(data)}")
+        return extract_sld_837(data)
     elif format == "fhir":
-        if isinstance(data, dict):
-            return extract_mde_fhir(data)
-        elif isinstance(data, list):
-            results = []
-            for item in data:
-                if not isinstance(item, dict):
-                    raise ValueError("FHIR format requires dict or list of dicts")
-                try:
-                    results.extend(extract_mde_fhir(item))
-                except ValueError as e:
-                    print(f"Warning: Skipping invalid EOB: {str(e)}")
-            return results
-        else:
-            raise ValueError("FHIR format requires dict or list of dicts")
-            
+        if not isinstance(data, dict) or data == {}:
+            raise TypeError(f"FHIR format requires dict input, got {type(data)}")   
+        return extract_sld_fhir(data)
     else:
-        raise ValueError('Format must be either "837" or "fhir"')
+        raise ValueError(f'Format must be either "837" or "fhir", got {format}')
 
-# Example usage
-if __name__ == "__main__":
-    # Example 837 data
-    x12_data = """NM1*QC*1*DOE*JOHN****MI*12345~..."""
-    with open('data/sample_837_11.txt', 'r') as file:
-        x12_data = file.read()
-        x12_mdes = extract_mde(x12_data, format="837")
-        from pprint import pprint
-        pprint(x12_mdes)
-    
-    # Example FHIR data
-    fhir_data = {"resourceType": "ExplanationOfBenefit"}
-    fhir_mdes = extract_mde(fhir_data, format="fhir")
-    #print(fhir_mdes)
-    import json
-    with open('data/sample_eob_200.ndjson', 'r') as file:
-        for line in file:
-            eob_data = json.loads(line)
-            mde = extract_mde(eob_data, format="fhir")
-            #print(mde)
+
+def extract_sld_list(data: Union[List[str], List[dict]], format: Literal["837", "fhir"] = "fhir") -> List[ServiceLevelData]:
+    """Extract SLDs from a list of FHIR EOBs"""
+    output = []
+    for item in data:
+
+        try:
+            output.extend(extract_sld(item, format))
+        except TypeError as e:
+            print(f"Warning: Skipping invalid types: {str(e)}")
+        except ValueError as e:
+            print(f"Warning: Skipping invalid values: {str(e)}")
+    return output
+

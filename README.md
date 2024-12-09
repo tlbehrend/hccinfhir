@@ -64,6 +64,13 @@ filtered_mde = hcc_processor.apply_filters(mde_list)  # future
 raf_details = hcc_processor.calculate_raf(filtered_mde, demographic_data)  # future
 ```
 
+## Testing
+```bash
+$ python3 -m hatch shell
+$ python3 -m pip install -e .
+$ python3 -m pytest tests/*
+``` 
+
 ## Dependencies
 - Pydantic >= 2.10.3
 - Standard Python libraries
