@@ -58,7 +58,7 @@ def test_extract_sld_missing_serviced_period():
     sld = extract_sld(eob_data)
     assert sld[0].service_date == "2023-01-01"  # Should fall back to billablePeriod
 
-def test_extract_mde_invalid_data():
+def test_extract_sld_invalid_data():
     with pytest.raises(ValueError):
         extract_sld({"resourceType": "Invalid"})
 
@@ -70,7 +70,7 @@ def test_extract_sld_non_hcpcs_item():
     assert len(sld) == 1
     assert sld[0].procedure_code is None
 
-def test_extract_mde_list():
+def test_extract_sld_list():
     eob_data_list = load_sample_eob_list()
     sld_list = extract_sld_list(eob_data_list)
     assert len(sld_list) == 200

@@ -40,6 +40,5 @@ class ServiceLevelData(BaseModel):
     service_date: Optional[str] = None
     place_of_service: Optional[str] = None
     quantity: Optional[float] = None
-    quantity_unit: Optional[str] = None
     modifiers: List[str] = []
     allowed_amount: Optional[float] = None

@@ -166,7 +166,6 @@ def extract_sld_837(content: str) -> List[ServiceLevelData]:
                 service_date=service_date,
                 place_of_service=get_segment_value(segment, 6) if seg_id == 'SV1' else None,
                 quantity=parse_amount(get_segment_value(segment, 4)),
-                quantity_unit=get_segment_value(segment, 5),
                 modifiers=modifiers,
                 ndc=ndc,
                 allowed_amount=None
