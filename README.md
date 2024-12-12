@@ -158,6 +158,25 @@ $ python3 -m pytest tests/*
 3. Add support for allowed_amount in 837 if available in different segments
 4. Consider adding more robust error handling in both implementations
 
+## Data Files
+
+```sql
+SELECT diagnosis_code, cc, model_name 
+FROM ra_dx_to_cc_mapping 
+WHERE year = 2025 and model_type = 'Initial';
+```
+
+```sql
+SELECT cc_parent, 
+  cc_child, 
+  model_domain, 
+  model_version, 
+  model_fullname
+FROM ra_hierarchies
+WHERE eff_last_date > '2025-01-01';
+```
+
+
 ## Contributing
 Join us at [mimilabs](https://mimilabs.ai/signup). Reference data available in MIMILabs data lakehouse.
 
