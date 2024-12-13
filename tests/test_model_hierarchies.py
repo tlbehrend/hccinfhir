@@ -5,8 +5,8 @@ def test_basic_hierarchy():
     """Test basic parent-child hierarchy removal"""
     # Example: Diabetes hierarchy where 17 > 18 > 19
     test_hierarchies = {
-        ("17", "CMS-HCC Model V28"): ["18", "19"],
-        ("18", "CMS-HCC Model V28"): ["19"]
+        ("17", "CMS-HCC Model V28"): {"18", "19"},
+        ("18", "CMS-HCC Model V28"): {"19"}
     }
     
     # Test parent removes children
@@ -46,8 +46,8 @@ def test_esrd_models():
 def test_multiple_hierarchies():
     """Test multiple hierarchies applied correctly"""
     test_hierarchies = {
-        ("17", "CMS-HCC Model V28"): ["18", "19"],
-        ("130", "CMS-HCC Model V28"): ["131", "132"]
+        ("17", "CMS-HCC Model V28"): {"18", "19"},
+        ("130", "CMS-HCC Model V28"): {"131", "132"}
     }
     
     cc_set = {"17", "18", "19", "130", "131", "132"}
@@ -57,7 +57,7 @@ def test_multiple_hierarchies():
 def test_input_immutability():
     """Test that input set is not modified"""
     test_hierarchies = {
-        ("17", "CMS-HCC Model V28"): ["18", "19"]
+        ("17", "CMS-HCC Model V28"): {"18", "19"}
     }
     
     cc_set = {"17", "18", "19"}

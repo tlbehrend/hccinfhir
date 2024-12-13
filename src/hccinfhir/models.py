@@ -1,6 +1,15 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal
 
+# Define Model Name literal type
+ModelName = Literal[
+    "CMS-HCC Model V22",
+    "CMS-HCC Model V24",
+    "CMS-HCC Model V28",
+    "CMS-HCC ESRD Model V21",
+    "CMS-HCC ESRD Model V24",
+    "RxHCC Model V08"
+]
 class ServiceLevelData(BaseModel):
     """
     Represents standardized service-level data extracted from healthcare claims.
@@ -42,3 +51,17 @@ class ServiceLevelData(BaseModel):
     quantity: Optional[float] = None
     modifiers: List[str] = []
     allowed_amount: Optional[float] = None
+
+class AgeSexCategory(BaseModel):
+    """
+    Response model for age-sex categorization
+    """
+    category: str = Field(..., description="Age-sex category code")
+    version: str = Field("V2", description="Version of categorization used (V2, V4, V6)")
+    non_aged: bool = Field(False, description="True if age <= 64")
+    orig_disabled: bool = Field(False, description="True if originally disabled (OREC='1' and not currently disabled)")
+    disabled: bool = Field(False, description="True if currently disabled (age < 65 and OREC != '0')")
+    esrd: bool = Field(False, description="True if ESRD (ESRD Model)")
+    lti: bool = Field(False, description="True if LTI (LTI Model)") 
+    fbd: bool = Field(False, description="True if FBD (FBD Model)") 
+    pbd: bool = Field(False, description="True if PBD (PBD Model)") 

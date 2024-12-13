@@ -1,15 +1,5 @@
 from typing import Union
-from pydantic import BaseModel, Field
-
-class AgeSexCategory(BaseModel):
-    """
-    Response model for age-sex categorization
-    """
-    category: str = Field(..., description="Age-sex category code")
-    version: str = Field(..., description="Version of categorization used (V2, V4, V6)")
-    non_aged: bool = Field(..., description="True if age <= 64")
-    orig_disabled: bool = Field(..., description="True if originally disabled (OREC='1' and not currently disabled)")
-    disabled: bool = Field(..., description="True if currently disabled (age < 65 and OREC != '0')")
+from hccinfhir.models import AgeSexCategory
     
 def categorize_age_sex(age: Union[int, float], sex: str, orec: str = None, version: str = 'V2') -> AgeSexCategory:
     """

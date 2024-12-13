@@ -1,19 +1,10 @@
-from typing import List, Dict, Set, Tuple, Optional, Literal
+from typing import List, Dict, Set, Tuple, Optional
 import importlib.resources
-
-# Define Model Name literal type
-ModelName = Literal[
-    "CMS-HCC Model V22",
-    "CMS-HCC Model V24",
-    "CMS-HCC Model V28",
-    "CMS-HCC ESRD Model V21",
-    "CMS-HCC ESRD Model V24",
-    "RxHCC Model V08"
-]
+from hccinfhir.models import ModelName
 
 # Load default mappings from csv file
 mapping_file_default = 'ra_dx_to_cc_2025.csv'
-dx_to_cc_default: Dict[Tuple[str, str], Set[str]] = {}  # (diagnosis_code, model_name) -> cc
+dx_to_cc_default: Dict[Tuple[str, ModelName], Set[str]] = {}  # (diagnosis_code, model_name) -> cc
 
 try:
     with importlib.resources.open_text('hccinfhir.data', mapping_file_default) as f:

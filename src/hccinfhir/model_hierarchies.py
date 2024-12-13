@@ -1,9 +1,10 @@
-from typing import List, Dict, Set, Tuple, Optional
+from typing import List, Dict, Set, Tuple
 import importlib.resources
+from hccinfhir.models import ModelName  
 
 # Load default mappings from csv file
 hierarchies_file_default = 'ra_hierarchies_2025.csv'
-hierarchies_default: Dict[Tuple[str, str], str] = {}  # (diagnosis_code, model_name) -> cc
+hierarchies_default: Dict[Tuple[str, ModelName], Set[str]] = {}  # (diagnosis_code, model_name) -> {cc}
 
 try:
     with importlib.resources.open_text('hccinfhir.data', hierarchies_file_default) as f:
@@ -16,9 +17,9 @@ try:
                     model_name = f"{model_domain} Model {model_version}"
                 key = (cc_parent, model_name)
                 if key not in hierarchies_default:
-                    hierarchies_default[key] = [cc_child]
+                    hierarchies_default[key] = {cc_child}
                 else:
-                    hierarchies_default[key].append(cc_child)
+                    hierarchies_default[key].add(cc_child)
             except ValueError:
                 continue  # Skip malformed lines
 except Exception as e:
@@ -27,12 +28,12 @@ except Exception as e:
 
 def apply_hierarchies(
     cc_set: Set[str],  # Set of active CCs
-    model_name: str = "CMS-HCC Model V28",
-    hierarchies: Dict[Tuple[str, str], List[str]] = hierarchies_default
+    model_name: ModelName = "CMS-HCC Model V28",
+    hierarchies: Dict[Tuple[str, ModelName], Set[str]] = hierarchies_default
 ) -> Set[str]:
     """
     Apply hierarchical rules to a set of CCs based on model version.
-    
+
     Args:
         ccs: Set of current active CCs
         model_name: HCC model name to use for hierarchy rules
@@ -63,7 +64,7 @@ def apply_hierarchies(
         if hierarchy_key in hierarchies:
             # If parent CC exists, remove all child CCs
             child_ccs = hierarchies[hierarchy_key]
-            to_remove.update(set(child_ccs) & cc_set)
+            to_remove.update(child_ccs & cc_set)
 
     # Return CCs with hierarchical exclusions removed
     return cc_set - to_remove
