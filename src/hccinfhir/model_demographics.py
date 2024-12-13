@@ -1,45 +1,42 @@
 from typing import Union
-from hccinfhir.models import AgeSexCategory
+from hccinfhir.models import Demographics
     
-def categorize_age_sex(age: Union[int, float], sex: str, orec: str = None, version: str = 'V2') -> AgeSexCategory:
+def categorize_demographics(age: Union[int, float], 
+                       sex: str, 
+                       dual_elgbl_cd: str = None,
+                       orec: str = None, 
+                       crec: str = None,
+                       version: str = 'V2',
+                       new_enrollee: bool = False,
+                       snp: bool = False,
+                       ) -> Demographics:
     """
-    Categorize age and sex based on different version logics (V2, V4, V6)
-    
-    Parameters:
-    ----------
-    age : Union[int, float]
-        Age of the person (will be floored if float)
-    sex : str
-        Sex of the person ('M', 'F', '1', '2')
-    orec : str, optional
-        Original reason for entitlement, required for V2/V4
-    version : str, default='V2'
-        Version of categorization logic to use:
-        - V2: CMS-HCC for Medicare
-        - V4: RxHCC
-        - V6: ACA-HCC
-        
+    Categorize a beneficiary's demographics into risk adjustment categories.
+
+    This function takes demographic information about a beneficiary and returns a Demographics
+    object containing derived fields used in risk adjustment models.
+
+    Args:
+        age: Beneficiary age (integer or float, will be floored to integer)
+        sex: Beneficiary sex ('M'/'F' or '1'/'2')
+        dual_elgbl_cd: Dual eligibility code ('00'-'10')
+        orec: Original reason for entitlement code ('0'-'3')
+        crec: Current reason for entitlement code ('0'-'3') 
+        version: Version of categorization to use ('V2', 'V4', 'V6')
+        new_enrollee: Whether beneficiary is a new enrollee
+        snp: Whether beneficiary is in a Special Needs Plan
+
     Returns:
-    -------
-    AgeSexCategory
-        Pydantic model containing:
-        - category: str (age-sex category code)
-        - version: str (V2/V4/V6)
-        - non_aged: bool (True if age <= 64)
-        - orig_disabled: bool (True if originally disabled)
-        - disabled: bool (True if currently disabled)
-        
+        Demographics object containing derived fields like age/sex category,
+        disability status, dual status flags, etc.
+
     Raises:
-    ------
-    ValueError
-        If age is negative or non-numeric
-        If sex is not in ('M', 'F', '1', '2')
-        If version is not in ('V2', 'V4', 'V6')
-        If orec is missing for V2/V4
+        ValueError: If age is negative or non-numeric, or if sex is invalid
     """
     
     if not isinstance(age, (int, float)):
         raise ValueError("Age must be a number")
+    
     if age < 0:
         raise ValueError("Age must be non-negative")
         
@@ -61,11 +58,35 @@ def categorize_age_sex(age: Union[int, float], sex: str, orec: str = None, versi
     disabled = age < 65 and orec is not None and orec != "0"
     orig_disabled = orec is not None and orec == '1' and not disabled
 
+    # Reference: https://resdac.org/cms-data/variables/medicare-medicaid-dual-eligibility-code-january 
+    # Full benefit dual codes
+    fbd_codes = {'02', '04', '08'}
+    
+    # Partial benefit dual codes
+    pbd_codes = {'01', '03', '05', '06'}
+    
+    is_fbd = dual_elgbl_cd in fbd_codes
+    is_pbd = dual_elgbl_cd in pbd_codes
+
+    esrd_orec = orec in {'2', '3', '6'}
+    esrd_crec = crec in {'2', '3'} if crec else False
+    esrd = esrd_orec or esrd_crec
+
     result_dict = {
         'version': version,
         'non_aged': non_aged,
         'orig_disabled': orig_disabled,
-        'disabled': disabled
+        'disabled': disabled,
+        'age': age,
+        'sex': std_sex if version in ('V2', 'V4') else v6_sex,
+        'dual_elgbl_cd': dual_elgbl_cd,
+        'orec': orec,
+        'crec': crec,
+        'new_enrollee': new_enrollee,
+        'snp': snp,
+        'fbd': is_fbd,
+        'pbd': is_pbd,
+        'esrd': esrd
     }
 
     # V6 Logic (ACA Population)
@@ -91,7 +112,7 @@ def categorize_age_sex(age: Union[int, float], sex: str, orec: str = None, versi
         for low, high, label in age_ranges:
             if low <= age <= high:
                 result_dict['category'] = f"{v6_sex}AGE_LAST_{label}"
-                return AgeSexCategory(**result_dict)
+                return Demographics(**result_dict)
     
     # V2/V4 Logic (Medicare Population)
     elif version in ('V2', 'V4'):
@@ -162,7 +183,7 @@ def categorize_age_sex(age: Union[int, float], sex: str, orec: str = None, versi
                 raise ValueError(f"Unable to categorize age: {age}")
         
         result_dict['category'] = category
-        return AgeSexCategory(**result_dict)
+        return Demographics(**result_dict)
     
     else:
         raise ValueError("Version must be 'V2', 'V4', or 'V6'")

@@ -52,16 +52,23 @@ class ServiceLevelData(BaseModel):
     modifiers: List[str] = []
     allowed_amount: Optional[float] = None
 
-class AgeSexCategory(BaseModel):
+class Demographics(BaseModel):
     """
-    Response model for age-sex categorization
+    Response model for demographic categorization
     """
-    category: str = Field(..., description="Age-sex category code")
+    age: int = Field(..., description="Beneficiary age")
+    sex: Literal['M', 'F', '1', '2'] = Field(..., description="Beneficiary sex")
+    dual_elgbl_cd: Literal[None, '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10'] = Field(None, description="Dual status code")
+    orec: Literal[None, '0', '1', '2', '3'] = Field(None, description="Original reason for entitlement")
+    crec: Literal[None, '0', '1', '2', '3'] = Field(None, description="Current reason for entitlement")
+    new_enrollee: bool = Field(False, description="True if beneficiary is a new enrollee")
+    snp: bool = Field(False, description="True if beneficiary is in SNP")
     version: str = Field("V2", description="Version of categorization used (V2, V4, V6)")
-    non_aged: bool = Field(False, description="True if age <= 64")
-    orig_disabled: bool = Field(False, description="True if originally disabled (OREC='1' and not currently disabled)")
-    disabled: bool = Field(False, description="True if currently disabled (age < 65 and OREC != '0')")
-    esrd: bool = Field(False, description="True if ESRD (ESRD Model)")
-    lti: bool = Field(False, description="True if LTI (LTI Model)") 
-    fbd: bool = Field(False, description="True if FBD (FBD Model)") 
-    pbd: bool = Field(False, description="True if PBD (PBD Model)") 
+    category: str = Field(..., description="[derived] Age-sex category code")
+    non_aged: bool = Field(False, description="[derived] True if age <= 64")
+    orig_disabled: bool = Field(False, description="[derived] True if originally disabled (OREC='1' and not currently disabled)")
+    disabled: bool = Field(False, description="[derived] True if currently disabled (age < 65 and OREC != '0')")
+    esrd: bool = Field(False, description="[derived] True if ESRD (ESRD Model)")
+    lti: bool = Field(False, description="[derived] True if LTI (LTI Model)") 
+    fbd: bool = Field(False, description="[derived] True if FBD (FBD Model)") 
+    pbd: bool = Field(False, description="[derived] True if PBD (PBD Model)")

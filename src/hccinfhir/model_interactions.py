@@ -1,11 +1,11 @@
-from hccinfhir.models import AgeSexCategory, ModelName
+from hccinfhir.models import Demographics, ModelName
 from typing import Optional
 
 def has_any_hcc(hcc_list: list[str], hcc_set: set[str]) -> int:
     """Returns 1 if any HCC in the list is present, 0 otherwise"""
     return int(bool(set(hcc_list) & hcc_set))
 
-def create_demographic_interactions(demographics: AgeSexCategory) -> dict:
+def create_demographic_interactions(demographics: Demographics) -> dict:
     """Creates common demographic-based interactions"""
     interactions = {}
     is_female = demographics.category.startswith('F')
@@ -30,7 +30,7 @@ def create_demographic_interactions(demographics: AgeSexCategory) -> dict:
         
     return interactions
 
-def create_dual_interactions(demographics: AgeSexCategory) -> dict:
+def create_dual_interactions(demographics: Demographics) -> dict:
     """Creates dual status interactions"""
     interactions = {}
     is_female = demographics.category.startswith('F')
@@ -141,7 +141,7 @@ def get_diagnostic_categories(model_name: ModelName, hcc_set: set[str]) -> dict:
 
 def create_disease_interactions(model_name: ModelName, 
                               diagnostic_cats: dict, 
-                              demographics: Optional[AgeSexCategory],
+                              demographics: Optional[Demographics],
                               hcc_set: Optional[set[str]]) -> dict:
     """Creates disease interaction variables based on model version.
     
@@ -306,7 +306,7 @@ def create_disease_interactions(model_name: ModelName,
     
     return interactions
 
-def apply_interactions(demographics: AgeSexCategory, 
+def apply_interactions(demographics: Demographics, 
                       hcc_set: set[str], 
                       model_name: ModelName = "CMS-HCC Model V28") -> dict:
     """

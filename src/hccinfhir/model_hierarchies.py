@@ -1,4 +1,4 @@
-from typing import List, Dict, Set, Tuple
+from typing import Dict, Set, Tuple
 import importlib.resources
 from hccinfhir.models import ModelName  
 
