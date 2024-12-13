@@ -4,7 +4,7 @@ from hccinfhir.extractor import extract_sld, extract_sld_list
 from hccinfhir.extractor_837 import ClaimData, parse_date, parse_amount
 
 def load_sample_837(casenum=0):
-    with importlib.resources.open_text('hccinfhir.data', 
+    with importlib.resources.open_text('hccinfhir.samples', 
                                      f'sample_837_{casenum}.txt') as f:
         return f.read()
 

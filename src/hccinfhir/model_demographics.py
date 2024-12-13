@@ -9,6 +9,8 @@ def categorize_demographics(age: Union[int, float],
                        version: str = 'V2',
                        new_enrollee: bool = False,
                        snp: bool = False,
+                       low_income: bool = False,
+                       graft_months: int = None
                        ) -> Demographics:
     """
     Categorize a beneficiary's demographics into risk adjustment categories.
@@ -55,8 +57,8 @@ def categorize_demographics(age: Union[int, float],
         raise ValueError("Sex must be 'M', 'F', '1', or '2'")
     
     # Determine if person is disabled or originally disabled
-    disabled = age < 65 and orec is not None and orec != "0"
-    orig_disabled = orec is not None and orec == '1' and not disabled
+    disabled = age < 65 and (orec is not None and orec != "0")
+    orig_disabled = (orec is not None and orec == '1') and not disabled
 
     # Reference: https://resdac.org/cms-data/variables/medicare-medicaid-dual-eligibility-code-january 
     # Full benefit dual codes
@@ -86,7 +88,9 @@ def categorize_demographics(age: Union[int, float],
         'snp': snp,
         'fbd': is_fbd,
         'pbd': is_pbd,
-        'esrd': esrd
+        'esrd': esrd,
+        'graft_months': graft_months,
+        'low_income': low_income
     }
 
     # V6 Logic (ACA Population)
@@ -120,9 +124,7 @@ def categorize_demographics(age: Union[int, float],
             raise ValueError("OREC is required for V2/V4 categorization")
         
         # New enrollee logic
-        is_new_enrollee = False  # Define based on business rules
-        
-        if is_new_enrollee:
+        if new_enrollee:
             prefix = 'NEF' if std_sex == '2' else 'NEM'
             
             if age <= 34:

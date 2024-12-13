@@ -4,13 +4,13 @@ from hccinfhir.extractor import extract_sld, extract_sld_list
 import json
 
 def load_sample_eob(casenum=2):
-   with importlib.resources.open_text('hccinfhir.data', 
+   with importlib.resources.open_text('hccinfhir.samples', 
                                       f'sample_eob_{casenum}.json') as f:
        return json.load(f)
 
 def load_sample_eob_list():
    output = []
-   with importlib.resources.open_text('hccinfhir.data', 
+   with importlib.resources.open_text('hccinfhir.samples', 
                                       f'sample_eob_200.ndjson') as f:
         for line in f:
             eob_data = json.loads(line)

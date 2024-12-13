@@ -1,0 +1,105 @@
+import pytest
+from hccinfhir.model_calculate import calculate_raf
+
+def test_basic_cms_hcc_calculation():
+    diagnosis_codes = ['E119', 'I509']  # Diabetes without complications, Heart failure
+    result = calculate_raf(
+        diagnosis_codes=diagnosis_codes,
+        model_name="CMS-HCC Model V24",
+        age=67,
+        sex='F'
+    )
+    assert isinstance(result['raf'], float)
+    assert result['raf'] > 0
+
+
+def test_cms_hcc_with_interactions():
+    diagnosis_codes = ['E1169', 'I509', 'J449']  # Diabetes with complications, Heart failure, COPD
+    result = calculate_raf(
+        diagnosis_codes=diagnosis_codes,
+        model_name="CMS-HCC Model V24",
+        age=72,
+        sex='M'
+    )
+    assert isinstance(result['raf'], float)
+    assert len(result['coefficients']) > 3  # Should have HCCs plus interactions
+
+def test_cms_hcc_with_demographics():
+    diagnosis_codes = ['C509']  # Breast cancer
+    result = calculate_raf(
+        diagnosis_codes=diagnosis_codes,
+        model_name="CMS-HCC Model V24", 
+        age=85,
+        sex='F',
+        dual_elgbl_cd='02',  # Full dual
+        orec='1'  # Originally disabled
+    )
+    assert isinstance(result['raf'], float)
+    assert result['raf'] > 0
+
+def test_cms_hcc_empty_dx():
+    result = calculate_raf(
+        diagnosis_codes=[],
+        model_name="CMS-HCC Model V24",
+        age=67,
+        sex='M'
+    )
+    assert isinstance(result['raf'], float)
+    assert len(result['coefficients']) > 0  # Should still have demographic factors
+
+def test_cms_hcc_invalid_dx():
+    result = calculate_raf(
+        diagnosis_codes=['INVALID123'],
+        model_name="CMS-HCC Model V24",
+        age=70,
+        sex='F'
+    )
+    assert isinstance(result['raf'], float)
+    assert len(result['coefficients']) > 0  # Should still have demographic factors
+
+def test_cms_hcc_new_enrollee():
+    result = calculate_raf(
+        diagnosis_codes=['E119'],
+        model_name="CMS-HCC Model V24",
+        age=65,
+        sex='F',
+        new_enrollee=True
+    )
+    assert isinstance(result['raf'], float)
+    assert len(result['coefficients']) > 0
+
+def test_cms_hcc_disabled():
+    result = calculate_raf(
+        diagnosis_codes=['F319', 'F200'],  # Bipolar disorder, Schizophrenia
+        model_name="CMS-HCC Model V24",
+        age=45,
+        sex='M',
+        orec='1'
+    )
+    assert isinstance(result['raf'], float)
+    assert result['raf'] > 0
+
+def test_cms_hcc_institutional():
+    result = calculate_raf(
+        diagnosis_codes=['G309', 'L89159'],  # Alzheimer's, Pressure ulcer
+        model_name="CMS-HCC Model V24",
+        age=82,
+        sex='F',
+        crec='1'  # Institutional
+    )
+    assert isinstance(result['raf'], float)
+    assert result['raf'] > 0
+
+def test_cms_hcc_snp():
+    result = calculate_raf(
+        diagnosis_codes=['E1169', 'I509'],
+        model_name="CMS-HCC Model V24",
+        age=72,
+        sex='F',
+        snp=True,
+        low_income=True
+    )
+    assert isinstance(result['raf'], float)
+    assert result['raf'] > 0
+
+

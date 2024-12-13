@@ -6,13 +6,13 @@ import json
 
 # Load an array of ServiceLevelData objects
 def load_sample_eob(casenum=2):
-   with importlib.resources.open_text('hccinfhir.data', 
+   with importlib.resources.open_text('hccinfhir.samples', 
                                       f'sample_eob_{casenum}.json') as f:
        return json.load(f)
    
 def load_sample_eob_list():
    output = []
-   with importlib.resources.open_text('hccinfhir.data', 
+   with importlib.resources.open_text('hccinfhir.samples', 
                                       f'sample_eob_200.ndjson') as f:
         for line in f:
             eob_data = json.loads(line)
@@ -23,7 +23,7 @@ def load_sample_eob_list():
    return output
 
 def load_sample_837(casenum=0):
-    with importlib.resources.open_text('hccinfhir.data', 
+    with importlib.resources.open_text('hccinfhir.samples', 
                                      f'sample_837_{casenum}.txt') as f:
         return f.read()
     

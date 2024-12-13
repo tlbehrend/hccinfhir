@@ -160,12 +160,14 @@ $ python3 -m pytest tests/*
 
 ## Data Files
 
+`ra_dx_to_cc_mapping_2025.csv`
 ```sql
 SELECT diagnosis_code, cc, model_name 
 FROM ra_dx_to_cc_mapping 
 WHERE year = 2025 and model_type = 'Initial';
 ```
 
+`ra_hierarchies_2025.csv`
 ```sql
 SELECT cc_parent, 
   cc_child, 
@@ -176,6 +178,12 @@ FROM ra_hierarchies
 WHERE eff_last_date > '2025-01-01';
 ```
 
+`ra_coefficients_2025.csv`
+```sql
+SELECT coefficient, value, model_domain, model_version 
+FROM ra_coefficients 
+WHERE eff_last_date > '2025-01-01';
+```   
 
 ## Contributing
 Join us at [mimilabs](https://mimilabs.ai/signup). Reference data available in MIMILabs data lakehouse.

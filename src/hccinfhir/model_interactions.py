@@ -28,6 +28,19 @@ def create_demographic_interactions(demographics: Demographics) -> dict:
         interactions['LTI_Aged'] = 0
         interactions['LTI_NonAged'] = 0
         
+    nemcaid = False
+    if demographics.new_enrollee and demographics.dual_elgbl_cd in {'01', '02', '03', '04', '05', '06', '08'}:
+        nemcaid = True
+    ne_origds = int(demographics.age >= 65 and (demographics.orec is not None and demographics.orec == "1"))
+    
+    # Four mutually exclusive groups
+    interactions.update({
+        f'NMCAID_NORIGDIS_{demographics.category}': int(not nemcaid and not ne_origds),
+        f'MCAID_NORIGDIS_{demographics.category}': int(nemcaid and not ne_origds),
+        f'NMCAID_ORIGDIS_{demographics.category}': int(not nemcaid and ne_origds),
+        f'MCAID_ORIGDIS_{demographics.category}': int(nemcaid and ne_origds)
+    })
+
     return interactions
 
 def create_dual_interactions(demographics: Demographics) -> dict:
