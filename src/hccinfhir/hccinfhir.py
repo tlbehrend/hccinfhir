@@ -2,8 +2,8 @@ from typing import List, Dict, Any, Union
 from hccinfhir.extractor import extract_sld_list
 from hccinfhir.filter import apply_filter
 from hccinfhir.model_calculate import calculate_raf
-from hccinfhir.datamodels import Demographics, ServiceLevelData, RAFResult, ModelName
-
+from hccinfhir.datamodels import Demographics, ServiceLevelData, RAFResult, ModelName, ProcFilteringFilename, DxCCMappingFilename
+from hccinfhir.utils import load_proc_filtering, load_dx_to_cc_mapping
 
 class HCCInFHIR:
     """
@@ -15,17 +15,26 @@ class HCCInFHIR:
     
     def __init__(self, 
                  filter_claims: bool = True, 
-                 model_name: ModelName = "CMS-HCC Model V28"):
+                 model_name: ModelName = "CMS-HCC Model V28",
+                 proc_filtering_filename: ProcFilteringFilename = "ra_eligible_cpt_hcpcs_2025.csv",
+                 dx_cc_mapping_filename: DxCCMappingFilename = "ra_dx_to_cc_2025.csv"):
         """
         Initialize the HCCInFHIR processor.
         
         Args:
             filter_claims: Whether to apply filtering rules to claims. Default is True.
             model_name: The name of the model to use for the calculation. Default is "CMS-HCC Model V28".
+            proc_filtering_filename: The filename of the professional cpt filtering file. Default is "ra_eligible_cpt_hcpcs_2025.csv".
+            dx_cc_mapping_filename: The filename of the dx to cc mapping file. Default is "ra_dx_to_cc_2025.csv".
         """
         self.filter_claims = filter_claims
         self.model_name = model_name
-        
+        self.proc_filtering_filename = proc_filtering_filename
+        self.dx_cc_mapping_filename = dx_cc_mapping_filename
+        self.professional_cpt = load_proc_filtering(proc_filtering_filename)
+        self.dx_to_cc_mapping = load_dx_to_cc_mapping(dx_cc_mapping_filename)
+
+
     def _ensure_demographics(self, demographics: Union[Demographics, Dict[str, Any]]) -> Demographics:
         """Convert demographics dict to Demographics object if needed."""
         if not isinstance(demographics, Demographics):
@@ -33,7 +42,7 @@ class HCCInFHIR:
         return demographics
     
     def _calculate_raf_from_demographics(self, diagnosis_codes: List[str], 
-                                       demographics: Demographics) -> Dict[str, Any]:
+                                       demographics: Demographics) -> RAFResult:
         """Calculate RAF score using demographics data."""
         return calculate_raf(
             diagnosis_codes=diagnosis_codes,
@@ -46,58 +55,40 @@ class HCCInFHIR:
             new_enrollee=demographics.new_enrollee,
             snp=demographics.snp,
             low_income=demographics.low_income,
-            graft_months=demographics.graft_months
+            graft_months=demographics.graft_months,
+            dx_to_cc_mapping=self.dx_to_cc_mapping
         )
 
     def _get_unique_diagnosis_codes(self, service_data: List[ServiceLevelData]) -> List[str]:
         """Extract unique diagnosis codes from service level data."""
-        all_dx_codes = []
-        for sld in service_data:
-            all_dx_codes.extend(sld.claim_diagnosis_codes)
-        return list(set(all_dx_codes))
-
-    def _format_result(self, 
-                  raf_result: Union[Dict[str, Any], RAFResult], 
-                  service_data: List[ServiceLevelData]) -> RAFResult:
-        """
-        Format RAF calculation results into a standardized RAFResult format.
-        
-        Returns a dictionary conforming to the RAFResult TypedDict structure.
-        """
-        
-        # Check if raf_result already has the expected RAFResult structure
-        if all(key in raf_result for key in ['risk_score', 'hcc_list', 'details']):
-            # Already in RAFResult format, just ensure service data is set
-            result = dict(raf_result)  # Create a copy to avoid modifying the original
-            result['service_level_data'] = service_data
-            return result
-        
-        # Handle result from calculate_raf function
-        if 'raf' in raf_result and 'coefficients' in raf_result:
-            return {
-                'risk_score': raf_result['raf'],
-                'hcc_list': list(raf_result['coefficients'].keys()),
-                'details': raf_result['coefficients'],
-                'service_level_data': service_data
-            }
-        
-        # Unrecognized format
-        raise ValueError(f"Unrecognized RAF result format: {list(raf_result.keys())}")
+        return list({code for sld in service_data for code in sld.claim_diagnosis_codes})
 
     def run(self, eob_list: List[Dict[str, Any]], 
             demographics: Union[Demographics, Dict[str, Any]]) -> RAFResult:
+        """Process EOB resources and calculate RAF scores.
+        
+        Args:
+            eob_list: List of EOB resources
+            demographics: Demographics information
+            
+        Returns:
+            RAFResult object containing calculated scores and processed data
+        """
+        if not isinstance(eob_list, list):
+            raise ValueError("eob_list must be a list; if no eob, pass empty list")
+        
         demographics = self._ensure_demographics(demographics)
         
         # Extract and filter service level data
         sld_list = extract_sld_list(eob_list)
         if self.filter_claims:
-            sld_list = apply_filter(sld_list)
+            sld_list = apply_filter(sld_list, self.professional_cpt)
             
         # Calculate RAF score
         unique_dx_codes = self._get_unique_diagnosis_codes(sld_list)
         raf_result = self._calculate_raf_from_demographics(unique_dx_codes, demographics)
-        
-        return self._format_result(raf_result, sld_list)
+        raf_result['service_level_data'] = sld_list
+        return raf_result
     
     def run_from_service_data(self, service_data: List[Union[ServiceLevelData, Dict[str, Any]]], 
                              demographics: Union[Demographics, Dict[str, Any]]) -> RAFResult:
@@ -126,17 +117,33 @@ class HCCInFHIR:
                 )
         
         if self.filter_claims:
-            standardized_data = apply_filter(standardized_data)
+            standardized_data = apply_filter(standardized_data, 
+                                             professional_cpt=self.professional_cpt)
+
         
         # Calculate RAF score
         unique_dx_codes = self._get_unique_diagnosis_codes(standardized_data)
         raf_result = self._calculate_raf_from_demographics(unique_dx_codes, demographics)
-        
-        return self._format_result(raf_result, standardized_data)
+        raf_result['service_level_data'] = standardized_data
+
+        return raf_result
         
     def calculate_from_diagnosis(self, diagnosis_codes: List[str],
                                demographics: Union[Demographics, Dict[str, Any]]) -> RAFResult:
+        """Calculate RAF scores from a list of diagnosis codes.
+        
+        Args:
+            diagnosis_codes: List of diagnosis codes
+            demographics: Demographics information
+            
+        Raises:
+            ValueError: If diagnosis_codes is empty or not a list
+        """
+        if not isinstance(diagnosis_codes, list):
+            raise ValueError("diagnosis_codes must be a list")
+        if not diagnosis_codes:
+            raise ValueError("diagnosis_codes list cannot be empty")
+        
         demographics = self._ensure_demographics(demographics)
         raf_result = self._calculate_raf_from_demographics(diagnosis_codes, demographics)
-        # Create an empty service level data list since we're calculating directly from diagnosis codes
-        return self._format_result(raf_result, []) 
+        return raf_result

@@ -6,6 +6,9 @@ A Python library for extracting standardized service-level data from FHIR Explan
 - Support for both BCDA (Blue Button 2.0) and standard FHIR R4 formats
 - Pydantic models for type safety and data validation
 - Standardized Service Level Data (SLD) output format
+- Multiple HCC model support (V22, V24, V28, ESRD V21, ESRD V24, RxHCC V08)
+- Flexible input options: FHIR EOBs, service data, or direct diagnosis codes
+
 
 ## Installation
 ```bash
@@ -95,15 +98,79 @@ result = calculate_raf(
 )
 ```
 
-### 4. Running HCC on FHIR data
+### 4. HCCInFHIR Class
+The main processor class that integrates extraction, filtering, and calculation components:
 
 ```python
-from hccinfhir import HCCInFHIR
+from hccinfhir.hccinfhir import HCCInFHIR
+from hccinfhir.datamodels import Demographics
 
-hcc_processor = HCCInFHIR()
+# Initialize with custom configuration
+hcc_processor = HCCInFHIR(
+    filter_claims=True,                                    # Enable claim filtering
+    model_name="CMS-HCC Model V28",                       # Choose HCC model version
+    proc_filtering_filename="ra_eligible_cpt_hcpcs_2025.csv",  # CPT/HCPCS filtering rules
+    dx_cc_mapping_filename="ra_dx_to_cc_2025.csv"         # Diagnosis to CC mapping
+)
 
-result = hcc_processor.run(eob_list, demographic_data)
+# Define beneficiary demographics
+demographics = Demographics(
+    age=67,
+    sex='F',
+    dual_elgbl_cd='00',    # Not dual eligible
+    orec='0',              # Old age
+    crec='0',              # Current old age
+    new_enrollee=False,
+    snp=False
+)
+
+# Method 1: Process FHIR EOB resources
+raf_result = hcc_processor.run(eob_list, demographics)
+
+# Method 2: Process service level data
+service_data = [{
+    "procedure_code": "99214",
+    "claim_diagnosis_codes": ["E11.9", "I10"],
+    "claim_type": "71",
+    "service_date": "2024-01-15"
+}]
+raf_result = hcc_processor.run_from_service_data(service_data, demographics)
+
+# Method 3: Direct diagnosis processing
+diagnosis_codes = ['E119', 'I509']
+raf_result = hcc_processor.calculate_from_diagnosis(diagnosis_codes, demographics)
+
+# RAF Result contains:
+print(f"Risk Score: {raf_result['risk_score']}")
+print(f"HCC List: {raf_result['hcc_list']}")
+print(f"CC to Diagnosis Mapping: {raf_result['cc_to_dx']}")
+print(f"Applied Coefficients: {raf_result['coefficients']}")
+print(f"Applied Interactions: {raf_result['interactions']}")
 ```
+
+The HCCInFHIR class provides three main processing methods:
+
+1. `run(eob_list, demographics)`: Process FHIR ExplanationOfBenefit resources
+   - Extracts service data from FHIR resources
+   - Applies filtering rules if enabled
+   - Calculates RAF scores using the specified model
+
+2. `run_from_service_data(service_data, demographics)`: Process standardized service data
+   - Accepts pre-formatted service level data
+   - Validates data structure using Pydantic models
+   - Applies filtering and calculates RAF scores
+
+3. `calculate_from_diagnosis(diagnosis_codes, demographics)`: Direct diagnosis processing
+   - Processes raw diagnosis codes without service context
+   - Useful for quick RAF calculations or validation
+   - Bypasses service-level filtering
+
+Each method returns a RAFResult containing:
+- Final risk score
+- List of HCCs
+- Mapping of condition categories to diagnosis codes
+- Applied coefficients and interactions
+- Processed service level data (when applicable)
 
 ## Testing
 ```bash
@@ -215,6 +282,13 @@ SELECT coefficient, value, model_domain, model_version
 FROM ra_coefficients 
 WHERE eff_last_date > '2025-01-01';
 ```   
+
+`ra_eligible_cpt_hcpcs_2025.csv`
+```sql
+SELECT DISTINCT cpt_hcpcs_code
+FROM mimi_ws_1.cmspayment.ra_eligible_cpt_hcpcs
+WHERE is_included = 'yes' AND YEAR(mimi_src_file_date) = 2024;
+```
 
 ## Contributing
 Join us at [mimilabs](https://mimilabs.ai/signup). Reference data available in MIMILabs data lakehouse.

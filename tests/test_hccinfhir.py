@@ -34,10 +34,18 @@ def sample_eob():
 def sample_service_data():
     return [
         {
-            "claim_type": "institutional",
+            "claim_id": "1",
+            "claim_type": "professional",
             "claim_diagnosis_codes": ["E119"],
             "procedure_code": "99213",
             "service_date": "2023-01-01"
+        },
+        {
+            "claim_id": "2",
+            "claim_type": "professional",
+            "claim_diagnosis_codes": ["E119"],
+            "procedure_code": "0398T",
+            "service_date": "2023-01-02"
         }
     ]
 
@@ -86,7 +94,6 @@ class TestHCCInFHIR:
         assert isinstance(result, dict)
         assert 'risk_score' in result
         assert 'hcc_list' in result
-        assert 'details' in result
         assert 'service_level_data' in result
         assert isinstance(result['service_level_data'], list)
         
@@ -102,7 +109,6 @@ class TestHCCInFHIR:
         assert isinstance(result, dict)
         assert 'risk_score' in result
         assert 'hcc_list' in result
-        assert 'details' in result
         assert 'service_level_data' in result
         # Verify service data processing
         sld = result['service_level_data'][0]
@@ -118,7 +124,7 @@ class TestHCCInFHIR:
         assert isinstance(result, dict)
         assert 'risk_score' in result
         assert 'hcc_list' in result
-        assert 'details' in result
+        assert 'demographics' in result
 
     def test_filtering_behavior(self, sample_demographics, sample_service_data):
         # Test with filtering enabled
@@ -136,6 +142,24 @@ class TestHCCInFHIR:
         # Results might be the same in this case, but verify they're dictionaries
         assert isinstance(result_filtered, dict)
         assert isinstance(result_unfiltered, dict)
+
+    def test_filtering_behavior_with_custom_files(self, sample_demographics, sample_service_data):
+        
+        processor = HCCInFHIR(filter_claims=True, 
+                             proc_filtering_filename='ra_eligible_cpt_hcpcs_2025.csv',
+                             dx_cc_mapping_filename='ra_dx_to_cc_2025.csv')
+        result = processor.run_from_service_data(sample_service_data, sample_demographics)
+        print(result['service_level_data'])
+        assert len(result['service_level_data']) == 1
+
+        processor = HCCInFHIR(filter_claims=False, 
+                             proc_filtering_filename='ra_eligible_cpt_hcpcs_2023.csv',
+                             dx_cc_mapping_filename='ra_dx_to_cc_2025.csv')
+        result = processor.run_from_service_data(sample_service_data, sample_demographics)
+        print(result)
+        assert len(result['service_level_data']) == 2
+
+
 
     def test_error_handling(self):
         processor = HCCInFHIR()

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal, Dict, Any, TypedDict
+from typing import List, Optional, Literal, Dict, Set, TypedDict
 
 # Define Model Name literal type
 ModelName = Literal[
@@ -10,6 +10,17 @@ ModelName = Literal[
     "CMS-HCC ESRD Model V24",
     "RxHCC Model V08"
 ]
+
+ProcFilteringFilename = Literal[
+    "ra_eligible_cpt_hcpcs_2023.csv",
+    "ra_eligible_cpt_hcpcs_2024.csv",
+    "ra_eligible_cpt_hcpcs_2025.csv"
+]
+
+DxCCMappingFilename = Literal[
+    "ra_dx_to_cc_2025.csv"
+]
+
 class ServiceLevelData(BaseModel):
     """
     Represents standardized service-level data extracted from healthcare claims.
@@ -80,5 +91,11 @@ class RAFResult(TypedDict):
     """Type definition for RAF calculation results"""
     risk_score: float
     hcc_list: List[str]
-    details: Dict[str, Any]
-    service_level_data: List[ServiceLevelData]
+    cc_to_dx: Dict[str, Set[str]]
+    coefficients: Dict[str, float]
+    interactions: Dict[str, float]
+    demographics: Demographics
+    model_name: ModelName
+    version: str
+    diagnosis_codes: List[str]
+    service_level_data: Optional[List[ServiceLevelData]]

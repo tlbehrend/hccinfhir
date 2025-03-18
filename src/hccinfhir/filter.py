@@ -1,12 +1,10 @@
 from typing import List, Set
 from hccinfhir.datamodels import ServiceLevelData
-import importlib.resources
+from hccinfhir.utils import load_proc_filtering
 
 # use import importlib.resources to load the professional_cpt_fn file as a list of strings
 professional_cpt_default_fn = 'ra_eligible_cpt_hcpcs_2023.csv'
-professional_cpt_default = []
-with importlib.resources.open_text('hccinfhir.data', professional_cpt_default_fn) as f:
-    professional_cpt_default = set(f.read().splitlines())
+professional_cpt_default = load_proc_filtering(professional_cpt_default_fn)
 
 def apply_filter(
     data: List[ServiceLevelData], 

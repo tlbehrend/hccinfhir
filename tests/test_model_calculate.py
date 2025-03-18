@@ -9,8 +9,8 @@ def test_basic_cms_hcc_calculation():
         age=67,
         sex='F'
     )
-    assert isinstance(result['raf'], float)
-    assert result['raf'] > 0
+    assert isinstance(result['risk_score'], float)
+    assert result['risk_score'] > 0
 
 
 def test_cms_hcc_with_interactions():
@@ -21,7 +21,7 @@ def test_cms_hcc_with_interactions():
         age=72,
         sex='M'
     )
-    assert isinstance(result['raf'], float)
+    assert isinstance(result['risk_score'], float)
     assert len(result['coefficients']) > 3  # Should have HCCs plus interactions
 
 def test_cms_hcc_with_demographics():
@@ -34,8 +34,8 @@ def test_cms_hcc_with_demographics():
         dual_elgbl_cd='02',  # Full dual
         orec='1'  # Originally disabled
     )
-    assert isinstance(result['raf'], float)
-    assert result['raf'] > 0
+    assert isinstance(result['risk_score'], float)
+    assert result['risk_score'] > 0
 
 def test_cms_hcc_empty_dx():
     result = calculate_raf(
@@ -44,7 +44,8 @@ def test_cms_hcc_empty_dx():
         age=67,
         sex='M'
     )
-    assert isinstance(result['raf'], float)
+    print(result)
+    assert isinstance(result['risk_score'], float)
     assert len(result['coefficients']) > 0  # Should still have demographic factors
 
 def test_cms_hcc_invalid_dx():
@@ -54,7 +55,8 @@ def test_cms_hcc_invalid_dx():
         age=70,
         sex='F'
     )
-    assert isinstance(result['raf'], float)
+    print(result)
+    assert isinstance(result['risk_score'], float)
     assert len(result['coefficients']) > 0  # Should still have demographic factors
 
 def test_cms_hcc_new_enrollee():
@@ -65,7 +67,7 @@ def test_cms_hcc_new_enrollee():
         sex='F',
         new_enrollee=True
     )
-    assert isinstance(result['raf'], float)
+    assert isinstance(result['risk_score'], float)
     assert len(result['coefficients']) > 0
 
 def test_cms_hcc_disabled():
@@ -76,8 +78,8 @@ def test_cms_hcc_disabled():
         sex='M',
         orec='1'
     )
-    assert isinstance(result['raf'], float)
-    assert result['raf'] > 0
+    assert isinstance(result['risk_score'], float)
+    assert result['risk_score'] > 0
 
 def test_cms_hcc_institutional():
     result = calculate_raf(
@@ -87,8 +89,8 @@ def test_cms_hcc_institutional():
         sex='F',
         crec='1'  # Institutional
     )
-    assert isinstance(result['raf'], float)
-    assert result['raf'] > 0
+    assert isinstance(result['risk_score'], float)
+    assert result['risk_score'] > 0
 
 def test_cms_hcc_snp():
     result = calculate_raf(
@@ -99,7 +101,7 @@ def test_cms_hcc_snp():
         snp=True,
         low_income=True
     )
-    assert isinstance(result['raf'], float)
-    assert result['raf'] > 0
+    assert isinstance(result['risk_score'], float)
+    assert result['risk_score'] > 0
 
 
