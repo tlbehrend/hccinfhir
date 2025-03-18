@@ -69,9 +69,9 @@ class Demographics(BaseModel):
     """
     age: Union[int, float] = Field(..., description="[required] Beneficiary age")
     sex: Literal['M', 'F', '1', '2'] = Field(..., description="[required] Beneficiary sex")
-    dual_elgbl_cd: Optional[Literal[None, 'NA', '99', '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']] = Field('NA', description="Dual status code")
-    orec: Optional[Literal[None, '0', '1', '2', '3']] = Field('0', description="Original reason for entitlement")
-    crec: Optional[Literal[None, '0', '1', '2', '3']] = Field('0', description="Current reason for entitlement")
+    dual_elgbl_cd: Optional[Literal[None, '', 'NA', '99', '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']] = Field('NA', description="Dual status code")
+    orec: Optional[Literal[None, '', '0', '1', '2', '3']] = Field('', description="Original reason for entitlement")
+    crec: Optional[Literal[None, '', '0', '1', '2', '3']] = Field('', description="Current reason for entitlement")
     new_enrollee: Optional[bool] = Field(False, description="True if beneficiary is a new enrollee")
     snp: Optional[bool] = Field(False, description="True if beneficiary is in SNP")
     version: Optional[str] = Field("V2", description="Version of categorization used (V2, V4, V6)")

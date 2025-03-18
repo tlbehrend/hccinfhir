@@ -120,9 +120,9 @@ def categorize_demographics(age: Union[int, float],
     
     # V2/V4 Logic (Medicare Population)
     elif version in ('V2', 'V4'):
-        if orec is None:
-            raise ValueError("OREC is required for V2/V4 categorization")
-        
+        if orec is None or orec == '':
+            orec = '0' # Default to 0 if OREC is None
+
         # New enrollee logic
         if new_enrollee:
             prefix = 'NEF' if std_sex == '2' else 'NEM'

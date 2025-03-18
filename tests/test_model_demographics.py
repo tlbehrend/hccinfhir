@@ -35,8 +35,6 @@ def test_input_validation():
     with pytest.raises(ValueError, match="Version must be"):
         categorize_demographics(35, 'M', version='V3')
     
-    with pytest.raises(ValueError, match="OREC is required"):
-        categorize_demographics(35, 'M', version='V2')
 
 def test_sex_normalization():
     """Test that different sex formats are normalized correctly"""
