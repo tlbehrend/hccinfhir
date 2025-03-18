@@ -165,7 +165,7 @@ class TestHCCInFHIR:
         processor = HCCInFHIR()
         
         # Test with invalid demographics
-        with pytest.raises(ValidationError, match="3 validation errors for Demographics"):
+        with pytest.raises(ValidationError, match="2 validation errors for Demographics"):
             processor.run([], {"invalid": "data"})
         
         # Test with empty service data
@@ -191,3 +191,48 @@ class TestHCCInFHIR:
                 "esrd": False,
                 "category": "CNA"
             })
+
+    def test_model_realcases(self):
+
+        # Test empty EOB list with minimal demographics
+        processor = HCCInFHIR()
+        result = processor.run([], {"age": 70, "sex": "M", "dual_elgbl_cd": "00"})
+        assert result["risk_score"] == 0.396
+        assert result["hcc_list"] == []
+        
+        # Test with custom configuration
+        hcc_processor = HCCInFHIR(
+            filter_claims=True,                                    # Enable claim filtering
+            model_name="CMS-HCC Model V28",                       # Choose HCC model version
+            proc_filtering_filename="ra_eligible_cpt_hcpcs_2025.csv",  # CPT/HCPCS filtering rules
+            dx_cc_mapping_filename="ra_dx_to_cc_2025.csv"         # Diagnosis to CC mapping
+        )
+
+        # Define beneficiary demographics
+        demographics = {
+            "age": 67,
+            "sex": "F"
+        }
+
+        # Test with sample EOB list (would need fixture)
+        sample_eob_list = []  # This would be populated from fixture in real test
+        raf_result = hcc_processor.run(sample_eob_list, demographics)
+        assert isinstance(raf_result, dict)
+        
+        # Test service level data processing
+        service_data = [{
+            "procedure_code": "99214",
+            "claim_diagnosis_codes": ["E119", "I10"],
+            "claim_type": "71",
+            "service_date": "2024-01-15"
+        }]
+        raf_result = hcc_processor.run_from_service_data(service_data, demographics)
+        assert isinstance(raf_result, dict)
+        assert "risk_score" in raf_result
+        assert "hcc_list" in raf_result
+        
+        # Test direct diagnosis processing
+        diagnosis_codes = ['E119', 'I509']
+        raf_result = hcc_processor.calculate_from_diagnosis(diagnosis_codes, demographics)
+        assert isinstance(raf_result, dict)
+        assert len(raf_result["hcc_list"]) > 0

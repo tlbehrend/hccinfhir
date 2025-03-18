@@ -114,15 +114,10 @@ hcc_processor = HCCInFHIR(
 )
 
 # Define beneficiary demographics
-demographics = Demographics(
+demographics = {
     age=67,
-    sex='F',
-    dual_elgbl_cd='00',    # Not dual eligible
-    orec='0',              # Old age
-    crec='0',              # Current old age
-    new_enrollee=False,
-    snp=False
-)
+    sex='F'
+}
 
 # Method 1: Process FHIR EOB resources
 raf_result = hcc_processor.run(eob_list, demographics)
