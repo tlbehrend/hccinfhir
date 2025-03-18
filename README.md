@@ -293,5 +293,11 @@ WHERE is_included = 'yes' AND YEAR(mimi_src_file_date) = 2024;
 ## Contributing
 Join us at [mimilabs](https://mimilabs.ai/signup). Reference data available in MIMILabs data lakehouse.
 
+## Publishing (only for those maintainers...)
+```bash
+$ python3 -m hatch build
+$ python3 -m hatch publish
+```
+
 ## License
 Apache License 2.0
