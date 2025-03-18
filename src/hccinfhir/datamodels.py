@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal, Dict, Set, TypedDict
+from typing import List, Optional, Literal, Dict, Set, TypedDict, Union
 
 # Define Model Name literal type
 ModelName = Literal[
@@ -67,7 +67,7 @@ class Demographics(BaseModel):
     """
     Response model for demographic categorization
     """
-    age: int = Field(..., description="[required] Beneficiary age")
+    age: Union[int, float] = Field(..., description="[required] Beneficiary age")
     sex: Literal['M', 'F', '1', '2'] = Field(..., description="[required] Beneficiary sex")
     dual_elgbl_cd: Optional[Literal[None, 'NA', '99', '00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']] = Field('NA', description="Dual status code")
     orec: Optional[Literal[None, '0', '1', '2', '3']] = Field('0', description="Original reason for entitlement")

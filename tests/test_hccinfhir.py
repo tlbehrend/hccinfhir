@@ -168,18 +168,6 @@ class TestHCCInFHIR:
         with pytest.raises(ValidationError, match="2 validation errors for Demographics"):
             processor.run([], {"invalid": "data"})
         
-        # Test with empty service data
-        with pytest.raises(ValueError, match="Service data list cannot be empty"):
-            processor.run_from_service_data([], {
-                "age": 70,
-                "sex": "M",
-                "dual_elgbl_cd": "00",
-                "orig_disabled": False,
-                "new_enrollee": False,
-                "esrd": False,
-                "category": "CNA"
-            })
-        
         # Test with non-list service data
         with pytest.raises(ValueError, match="Service data must be a list"):
             processor.run_from_service_data("not a list", {
@@ -219,6 +207,7 @@ class TestHCCInFHIR:
         raf_result = hcc_processor.run(sample_eob_list, demographics)
         assert isinstance(raf_result, dict)
         
+
         # Test service level data processing
         service_data = [{
             "procedure_code": "99214",

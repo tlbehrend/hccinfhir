@@ -96,10 +96,7 @@ class HCCInFHIR:
         
         if not isinstance(service_data, list):
             raise ValueError("Service data must be a list of service records")
-        
-        if not service_data:
-            raise ValueError("Service data list cannot be empty")
-        
+                
         # Standardize service data with better error handling
         standardized_data = []
         for idx, item in enumerate(service_data):
