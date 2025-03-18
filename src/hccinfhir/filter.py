@@ -1,5 +1,5 @@
 from typing import List, Set
-from .models import ServiceLevelData
+from hccinfhir.datamodels import ServiceLevelData
 import importlib.resources
 
 # use import importlib.resources to load the professional_cpt_fn file as a list of strings

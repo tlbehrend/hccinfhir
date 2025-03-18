@@ -1,5 +1,5 @@
 from typing import List, Union
-from hccinfhir.models import ModelName
+from hccinfhir.datamodels import ModelName
 from hccinfhir.model_demographics import categorize_demographics
 from hccinfhir.model_dx_to_cc import apply_mapping
 from hccinfhir.model_hierarchies import apply_hierarchies

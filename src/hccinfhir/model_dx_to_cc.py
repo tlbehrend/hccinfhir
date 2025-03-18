@@ -1,6 +1,6 @@
 from typing import List, Dict, Set, Tuple, Optional
 import importlib.resources
-from hccinfhir.models import ModelName
+from hccinfhir.datamodels import ModelName
 
 # Load default mappings from csv file
 mapping_file_default = 'ra_dx_to_cc_2025.csv'

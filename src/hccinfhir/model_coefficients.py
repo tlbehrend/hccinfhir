@@ -1,6 +1,6 @@
 from typing import Dict, Tuple
 import importlib.resources
-from hccinfhir.models import ModelName, Demographics
+from hccinfhir.datamodels import ModelName, Demographics
 
 # Load default mappings from csv file
 coefficients_file_default = 'ra_coefficients_2025.csv'

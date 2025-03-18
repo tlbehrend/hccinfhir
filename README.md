@@ -31,7 +31,26 @@ sld = [{
 }, ...]
 ```
 
-For more details on the SLD format, see the `models.py` file.
+Or, for direct risk score calculation from a list of diagnosis codes, you only need the model name, diagnosis codes, and basic demographic factors:
+
+```python
+from hccinfhir.model_calculate import calculate_raf
+
+diagnosis_codes = ['E119', 'I509']  # Diabetes without complications, Heart failure
+age = 67
+sex = 'F'
+model_name = "CMS-HCC Model V24"
+
+result = calculate_raf(
+   diagnosis_codes=diagnosis_codes,
+   model_name=model_name,
+   age=age,
+   sex=sex
+)
+```
+
+
+For more details on the SLD format, see the `datamodels.py` file.
 
 ## Core Components
 
@@ -57,21 +76,33 @@ filtered_sld = apply_filter(sld_list)
 ```
 
 
-### 3. Logic Module (In Development)
+### 3. Logic Module 
 Implements core HCC calculation logic:
 - Maps diagnosis codes to HCC categories
 - Applies hierarchical rules and interactions
 - Calculates final RAF scores
 - Integrates with standard CMS data files
 
-## Usage
+```python
+from hccinfhir.model_calculate import calculate_raf
+
+diagnosis_codes = ['E119', 'I509']  # Diabetes without complications, Heart failure
+result = calculate_raf(
+   diagnosis_codes=diagnosis_codes,
+   model_name="CMS-HCC Model V24",
+   age=67,
+   sex='F'
+)
+```
+
+### 4. Running HCC on FHIR data
+
 ```python
 from hccinfhir import HCCInFHIR
 
 hcc_processor = HCCInFHIR()
-sld_list = hcc_processor.extract_sld_list(eob_list)
-filtered_sld = hcc_processor.apply_filters(sld_list)  # future
-raf_details = hcc_processor.calculate_raf(filtered_sld, demographic_data)  # future
+
+result = hcc_processor.run(eob_list, demographic_data)
 ```
 
 ## Testing

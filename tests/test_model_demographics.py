@@ -1,6 +1,6 @@
 import pytest
 from hccinfhir.model_demographics import categorize_demographics
-from hccinfhir.models import Demographics
+from hccinfhir.datamodels import Demographics
 
 def test_basic_v6_categorization():
     """Test basic V6 (ACA) categorization"""

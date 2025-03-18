@@ -10,7 +10,7 @@ from hccinfhir.model_interactions import (
     create_disease_interactions,
     apply_interactions
 )
-from hccinfhir.models import Demographics, ModelName
+from hccinfhir.datamodels import Demographics    
 
 @pytest.fixture
 def sample_demographics():

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict, Any, TypedDict
 
 # Define Model Name literal type
 ModelName = Literal[
@@ -74,3 +74,11 @@ class Demographics(BaseModel):
     lti: bool = Field(False, description="[derived] True if LTI (LTI Model)") 
     fbd: bool = Field(False, description="[derived] True if FBD (FBD Model)") 
     pbd: bool = Field(False, description="[derived] True if PBD (PBD Model)")
+
+
+class RAFResult(TypedDict):
+    """Type definition for RAF calculation results"""
+    risk_score: float
+    hcc_list: List[str]
+    details: Dict[str, Any]
+    service_level_data: List[ServiceLevelData]

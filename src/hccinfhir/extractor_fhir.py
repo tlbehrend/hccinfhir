@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, AliasChoices
 from typing import List, Optional, Literal, Dict
 from datetime import date
-from .models import ServiceLevelData
+from hccinfhir.datamodels import ServiceLevelData
 
 SYSTEMS = {
     'diagnosis': {

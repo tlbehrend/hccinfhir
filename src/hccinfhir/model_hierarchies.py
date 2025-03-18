@@ -1,6 +1,6 @@
 from typing import Dict, Set, Tuple
 import importlib.resources
-from hccinfhir.models import ModelName  
+from hccinfhir.datamodels import ModelName  
 
 # Load default mappings from csv file
 hierarchies_file_default = 'ra_hierarchies_2025.csv'

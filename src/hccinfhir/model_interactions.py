@@ -1,4 +1,4 @@
-from hccinfhir.models import Demographics, ModelName
+from hccinfhir.datamodels import Demographics, ModelName
 from typing import Optional
 
 def has_any_hcc(hcc_list: list[str], hcc_set: set[str]) -> int:

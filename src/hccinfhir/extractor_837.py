@@ -1,7 +1,6 @@
 from typing import List, Optional, Dict
 from pydantic import BaseModel
-from datetime import date
-from .models import ServiceLevelData
+from hccinfhir.datamodels import ServiceLevelData
 
 CLAIM_TYPES = {
     "005010X222A1": "837P",     # Professional

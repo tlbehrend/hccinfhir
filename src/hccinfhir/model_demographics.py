@@ -1,5 +1,5 @@
 from typing import Union
-from hccinfhir.models import Demographics
+from hccinfhir.datamodels import Demographics
     
 def categorize_demographics(age: Union[int, float], 
                        sex: str, 
