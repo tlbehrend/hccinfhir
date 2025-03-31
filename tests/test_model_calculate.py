@@ -59,6 +59,24 @@ def test_cms_hcc_invalid_dx():
     assert isinstance(result['risk_score'], float)
     assert len(result['coefficients']) > 0  # Should still have demographic factors
 
+def test_cms_hcc_chronic_dx():
+    result = calculate_raf(
+        diagnosis_codes=['C509', 'E119', 'F319', 'A419'],
+        model_name="CMS-HCC Model V24",
+        age=85,
+        sex='F'
+    )
+    assert result['risk_score_chronic_only'] > 0
+    assert result['risk_score_hcc'] - result['risk_score_chronic_only'] > 0
+    result = calculate_raf(
+        diagnosis_codes=['C509', 'E119', 'F319', 'A419'],
+        model_name="CMS-HCC Model V28",
+        age=85,
+        sex='F'
+    )
+    assert result['risk_score_chronic_only'] > 0
+    assert result['risk_score_hcc'] - result['risk_score_chronic_only'] > 0
+
 def test_cms_hcc_new_enrollee():
     result = calculate_raf(
         diagnosis_codes=['E119'],

@@ -5,11 +5,15 @@ from hccinfhir.model_dx_to_cc import apply_mapping
 from hccinfhir.model_hierarchies import apply_hierarchies
 from hccinfhir.model_coefficients import apply_coefficients
 from hccinfhir.model_interactions import apply_interactions
-from hccinfhir.utils import load_dx_to_cc_mapping
+from hccinfhir.utils import load_dx_to_cc_mapping, load_is_chronic
 
 # Load default mappings from csv file
 mapping_file_default = 'ra_dx_to_cc_2025.csv'
 dx_to_cc_default = load_dx_to_cc_mapping(mapping_file_default)
+
+# Load default mappings from csv file
+mapping_file_default = 'hcc_is_chronic.csv'
+is_chronic_default = load_is_chronic(mapping_file_default)
 
 def calculate_raf(diagnosis_codes: List[str],
                   model_name: ModelName = "CMS-HCC Model V28",
@@ -22,7 +26,8 @@ def calculate_raf(diagnosis_codes: List[str],
                   snp: bool = False,
                   low_income: bool = False,
                   graft_months: int =  None,
-                  dx_to_cc_mapping: Dict[Tuple[str, ModelName], Set[str]] = dx_to_cc_default) -> RAFResult:
+                  dx_to_cc_mapping: Dict[Tuple[str, ModelName], Set[str]] = dx_to_cc_default,
+                  is_chronic_mapping: Dict[Tuple[str, ModelName], bool] = is_chronic_default) -> RAFResult:
     """
     Calculate Risk Adjustment Factor (RAF) based on diagnosis codes and demographic information.
 
@@ -77,15 +82,24 @@ def calculate_raf(diagnosis_codes: List[str],
     interactions = apply_interactions(demographics, hcc_set, model_name)
     coefficients = apply_coefficients(demographics, hcc_set, interactions, model_name)
 
+    hcc_chronic = set()
+    for hcc in hcc_set:
+        if is_chronic_mapping.get((hcc, model_name), False):
+            hcc_chronic.add(hcc)
+
     coefficients_demographics = apply_coefficients(demographics, set(), {}, model_name)
+    coefficients_chronic_only = apply_coefficients(demographics, hcc_chronic, {}, model_name)
     
+    # Calculate risk scores
     risk_score = sum(coefficients.values())
     risk_score_demographics = sum(coefficients_demographics.values())
+    risk_score_chronic_only = sum(coefficients_chronic_only.values()) - risk_score_demographics
     risk_score_hcc = risk_score - risk_score_demographics
 
     return {
         'risk_score': risk_score, 
         'risk_score_demographics': risk_score_demographics,
+        'risk_score_chronic_only': risk_score_chronic_only,
         'risk_score_hcc': risk_score_hcc,
         'hcc_list': list(hcc_set),
         'cc_to_dx': cc_to_dx,
