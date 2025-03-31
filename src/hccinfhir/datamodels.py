@@ -90,6 +90,8 @@ class Demographics(BaseModel):
 class RAFResult(TypedDict):
     """Type definition for RAF calculation results"""
     risk_score: float
+    risk_score_demographics: float
+    risk_score_hcc: float
     hcc_list: List[str]
     cc_to_dx: Dict[str, Set[str]]
     coefficients: Dict[str, float]

@@ -205,7 +205,11 @@ class TestHCCInFHIR:
         # Test with sample EOB list (would need fixture)
         sample_eob_list = []  # This would be populated from fixture in real test
         raf_result = hcc_processor.run(sample_eob_list, demographics)
-        assert isinstance(raf_result, dict)
+ 
+        assert "risk_score" in raf_result
+        assert "risk_score_demographics" in raf_result
+        assert "risk_score_hcc" in raf_result
+        assert "hcc_list" in raf_result
         
 
         # Test service level data processing
@@ -216,12 +220,13 @@ class TestHCCInFHIR:
             "service_date": "2024-01-15"
         }]
         raf_result = hcc_processor.run_from_service_data(service_data, demographics)
-        assert isinstance(raf_result, dict)
+
+
         assert "risk_score" in raf_result
         assert "hcc_list" in raf_result
         
         # Test direct diagnosis processing
         diagnosis_codes = ['E119', 'I509']
         raf_result = hcc_processor.calculate_from_diagnosis(diagnosis_codes, demographics)
-        assert isinstance(raf_result, dict)
+
         assert len(raf_result["hcc_list"]) > 0

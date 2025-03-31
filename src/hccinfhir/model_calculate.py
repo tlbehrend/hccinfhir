@@ -76,11 +76,17 @@ def calculate_raf(diagnosis_codes: List[str],
     hcc_set = apply_hierarchies(hcc_set, model_name)
     interactions = apply_interactions(demographics, hcc_set, model_name)
     coefficients = apply_coefficients(demographics, hcc_set, interactions, model_name)
+
+    coefficients_demographics = apply_coefficients(demographics, set(), {}, model_name)
     
     risk_score = sum(coefficients.values())
+    risk_score_demographics = sum(coefficients_demographics.values())
+    risk_score_hcc = risk_score - risk_score_demographics
 
     return {
         'risk_score': risk_score, 
+        'risk_score_demographics': risk_score_demographics,
+        'risk_score_hcc': risk_score_hcc,
         'hcc_list': list(hcc_set),
         'cc_to_dx': cc_to_dx,
         'coefficients': coefficients,
