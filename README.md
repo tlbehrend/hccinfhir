@@ -168,10 +168,12 @@ Each method returns a RAFResult containing:
 - Processed service level data (when applicable)
 
 ## Testing
+
+After installing `hatch`
 ```bash
-$ python3 -m hatch shell
-$ python3 -m pip install -e .
-$ python3 -m pytest tests/*
+$ hatch shell
+$ pip install -e .
+$ pytest tests/*
 ``` 
 
 ## Dependencies
@@ -253,45 +255,93 @@ $ python3 -m pytest tests/*
 
 ## Data Files
 
-`ra_dx_to_cc_mapping_2025.csv`
+`ra_dx_to_cc_mapping_2026.csv`
 ```sql
-SELECT diagnosis_code, cc, model_name 
-FROM ra_dx_to_cc_mapping 
-WHERE year = 2025 and model_type = 'Initial';
+WITH latest_years AS (
+  SELECT 
+    model_name,
+    MAX(year) as latest_year
+  FROM mimi_ws_1.cmspayment.ra_dx_to_cc_mapping 
+  WHERE model_type = 'Initial'
+    AND year <= 2026  -- Don't go beyond 2026
+  GROUP BY model_name
+)
+SELECT 
+  r.diagnosis_code, 
+  r.cc, 
+  r.model_name
+FROM mimi_ws_1.cmspayment.ra_dx_to_cc_mapping r
+INNER JOIN latest_years l 
+  ON r.model_name = l.model_name 
+  AND r.year = l.latest_year
+WHERE r.model_type = 'Initial'
+ORDER BY r.model_name, r.diagnosis_code;
 ```
 
-`ra_hierarchies_2025.csv`
+`ra_hierarchies_2026.csv`
 ```sql
-SELECT cc_parent, 
-  cc_child, 
-  model_domain, 
-  model_version, 
-  model_fullname
-FROM ra_hierarchies
-WHERE eff_last_date > '2025-01-01';
+WITH latest_dates AS (
+  SELECT 
+    model_domain,
+    model_version,
+    model_fullname,
+    MAX(eff_last_date) as latest_eff_last_date
+  FROM mimi_ws_1.cmspayment.ra_hierarchies 
+  GROUP BY model_domain, model_version, model_fullname
+)
+SELECT 
+  r.cc_parent, 
+  r.cc_child, 
+  r.model_domain, 
+  r.model_version, 
+  r.model_fullname
+FROM mimi_ws_1.cmspayment.ra_hierarchies r
+INNER JOIN latest_dates l 
+  ON r.model_domain = l.model_domain 
+  AND r.model_version = l.model_version
+  AND r.model_fullname = l.model_fullname
+  AND r.eff_last_date = l.latest_eff_last_date
+ORDER BY r.model_domain, r.model_version, r.model_fullname, r.cc_parent, r.cc_child;
 ```
 
-`ra_coefficients_2025.csv`
+`ra_coefficients_2026.csv`
 ```sql
-SELECT coefficient, value, model_domain, model_version 
-FROM ra_coefficients 
-WHERE eff_last_date > '2025-01-01';
+WITH preferred_records AS (
+  SELECT 
+    model_domain,
+    model_version,
+    MAX(eff_last_date) as latest_eff_last_date
+  FROM mimi_ws_1.cmspayment.ra_coefficients
+  GROUP BY model_domain, model_version
+)
+SELECT 
+  r.coefficient,
+  r.value, 
+  r.model_domain, 
+  r.model_version
+FROM mimi_ws_1.cmspayment.ra_coefficients r
+INNER JOIN preferred_records p
+  ON r.model_domain = p.model_domain 
+  AND r.model_version = p.model_version
+  AND r.eff_last_date = p.latest_eff_last_date
+ORDER BY r.model_domain, r.model_version, r.coefficient;
 ```   
 
-`ra_eligible_cpt_hcpcs_2025.csv`
+`ra_eligible_cpt_hcpcs_2026.csv`
 ```sql
 SELECT DISTINCT cpt_hcpcs_code
 FROM mimi_ws_1.cmspayment.ra_eligible_cpt_hcpcs
-WHERE is_included = 'yes' AND YEAR(mimi_src_file_date) = 2024;
+WHERE is_included = 'yes' AND YEAR(mimi_src_file_date) = 2025;
 ```
 
 ## Contributing
 Join us at [mimilabs](https://mimilabs.ai/signup). Reference data available in MIMILabs data lakehouse.
 
 ## Publishing (only for those maintainers...)
+Inside the hatch
 ```bash
-$ python3 -m hatch build
-$ python3 -m hatch publish
+$ hatch build
+$ hatch publish
 ```
 
 ## License

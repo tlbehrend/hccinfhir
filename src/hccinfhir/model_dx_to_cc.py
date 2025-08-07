@@ -3,7 +3,7 @@ from hccinfhir.datamodels import ModelName
 from hccinfhir.utils import load_dx_to_cc_mapping
 
 # Load default mappings from csv file
-mapping_file_default = 'ra_dx_to_cc_2025.csv'
+mapping_file_default = 'ra_dx_to_cc_2026.csv'
 dx_to_cc_default = load_dx_to_cc_mapping(mapping_file_default)
 
 def get_cc(

@@ -16,16 +16,16 @@ class HCCInFHIR:
     def __init__(self, 
                  filter_claims: bool = True, 
                  model_name: ModelName = "CMS-HCC Model V28",
-                 proc_filtering_filename: ProcFilteringFilename = "ra_eligible_cpt_hcpcs_2025.csv",
-                 dx_cc_mapping_filename: DxCCMappingFilename = "ra_dx_to_cc_2025.csv"):
+                 proc_filtering_filename: ProcFilteringFilename = "ra_eligible_cpt_hcpcs_2026.csv",
+                 dx_cc_mapping_filename: DxCCMappingFilename = "ra_dx_to_cc_2026.csv"):
         """
         Initialize the HCCInFHIR processor.
         
         Args:
             filter_claims: Whether to apply filtering rules to claims. Default is True.
             model_name: The name of the model to use for the calculation. Default is "CMS-HCC Model V28".
-            proc_filtering_filename: The filename of the professional cpt filtering file. Default is "ra_eligible_cpt_hcpcs_2025.csv".
-            dx_cc_mapping_filename: The filename of the dx to cc mapping file. Default is "ra_dx_to_cc_2025.csv".
+            proc_filtering_filename: The filename of the professional cpt filtering file. Default is "ra_eligible_cpt_hcpcs_2026.csv".
+            dx_cc_mapping_filename: The filename of the dx to cc mapping file. Default is "ra_dx_to_cc_2026.csv".
         """
         self.filter_claims = filter_claims
         self.model_name = model_name

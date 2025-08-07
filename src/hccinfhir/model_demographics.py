@@ -57,6 +57,14 @@ def categorize_demographics(age: Union[int, float],
         raise ValueError("Sex must be 'M', 'F', '1', or '2'")
     
     # Determine if person is disabled or originally disabled
+    # SAS code:
+    # DISABL = (&AGEF < 65 & &OREC ne "0");
+    # ORIGDS  = (&OREC = '1')*(DISABL = 0);
+    # The vairable names can be misleading. 
+    # disabled is true if the person is disabled and the age is less than 65
+    # - basically, the person is in Medicare due to disability not due to age
+    # orig_disabled is true if the person started Medicare due to disability, but now aged in
+    # - basically, the person is in Medicare due to age (not disability anymore)
     disabled = age < 65 and (orec is not None and orec != "0")
     orig_disabled = (orec is not None and orec == '1') and not disabled
 

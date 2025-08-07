@@ -185,6 +185,8 @@ class TestHCCInFHIR:
         # Test empty EOB list with minimal demographics
         processor = HCCInFHIR()
         result = processor.run([], {"age": 70, "sex": "M", "dual_elgbl_cd": "00"})
+
+        print(result)
         assert result["risk_score"] == 0.396
         assert result["hcc_list"] == []
         

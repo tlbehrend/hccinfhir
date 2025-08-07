@@ -3,7 +3,7 @@ import importlib.resources
 from hccinfhir.datamodels import ModelName, Demographics
 
 # Load default mappings from csv file
-coefficients_file_default = 'ra_coefficients_2025.csv'
+coefficients_file_default = 'ra_coefficients_2026.csv'
 coefficients_default: Dict[Tuple[str, ModelName], float] = {}  # (diagnosis_code, model_name) -> value
 
 try:
@@ -80,6 +80,7 @@ def get_coefficent_prefix(demographics: Demographics,
         return 'INS_'
         
     if demographics.new_enrollee:
+
         return 'SNPNE_' if demographics.snp else 'NE_'
         
     # Community case
@@ -138,6 +139,7 @@ def apply_coefficients(demographics: Demographics,
         if key in coefficients:
             value = coefficients[key]
             output[interaction_key] = value
+
 
     return output
 

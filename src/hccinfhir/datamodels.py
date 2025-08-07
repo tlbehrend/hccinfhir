@@ -14,11 +14,13 @@ ModelName = Literal[
 ProcFilteringFilename = Literal[
     "ra_eligible_cpt_hcpcs_2023.csv",
     "ra_eligible_cpt_hcpcs_2024.csv",
-    "ra_eligible_cpt_hcpcs_2025.csv"
+    "ra_eligible_cpt_hcpcs_2025.csv",
+    "ra_eligible_cpt_hcpcs_2026.csv"
 ]
 
 DxCCMappingFilename = Literal[
-    "ra_dx_to_cc_2025.csv"
+    "ra_dx_to_cc_2025.csv",
+    "ra_dx_to_cc_2026.csv"
 ]
 
 class ServiceLevelData(BaseModel):

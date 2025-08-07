@@ -8,7 +8,7 @@ from hccinfhir.model_interactions import apply_interactions
 from hccinfhir.utils import load_dx_to_cc_mapping, load_is_chronic
 
 # Load default mappings from csv file
-mapping_file_default = 'ra_dx_to_cc_2025.csv'
+mapping_file_default = 'ra_dx_to_cc_2026.csv'
 dx_to_cc_default = load_dx_to_cc_mapping(mapping_file_default)
 
 # Load default mappings from csv file
@@ -87,8 +87,25 @@ def calculate_raf(diagnosis_codes: List[str],
         if is_chronic_mapping.get((hcc, model_name), False):
             hcc_chronic.add(hcc)
 
-    coefficients_demographics = apply_coefficients(demographics, set(), {}, model_name)
-    coefficients_chronic_only = apply_coefficients(demographics, hcc_chronic, {}, model_name)
+    demographic_interactions = {}
+    for key, value in interactions.items():
+        if key.startswith('NMCAID_'):
+            demographic_interactions[key] = value
+        elif key.startswith('MCAID_'):
+            demographic_interactions[key] = value
+        elif key.startswith('LTI_'):
+            demographic_interactions[key] = value
+        elif key.startswith('OriginallyDisabled_'):
+            demographic_interactions[key] = value
+
+    coefficients_demographics = apply_coefficients(demographics, 
+                                                   set(), 
+                                                   demographic_interactions, 
+                                                   model_name)
+    coefficients_chronic_only = apply_coefficients(demographics, 
+                                                   hcc_chronic, 
+                                                   demographic_interactions, 
+                                                   model_name)
     
     # Calculate risk scores
     risk_score = sum(coefficients.values())
