@@ -7,6 +7,7 @@ def categorize_demographics(age: Union[int, float],
                        orec: str = None, 
                        crec: str = None,
                        version: str = 'V2',
+                       model_name: str = 'CMS-HCC Model V28' ,       ## TB added 8/8/2025 to be able to distinguish diff age categories for DNE vs NE 
                        new_enrollee: bool = False,
                        snp: bool = False,
                        low_income: bool = False,
@@ -126,6 +127,37 @@ def categorize_demographics(age: Union[int, float],
                 result_dict['category'] = f"{v6_sex}AGE_LAST_{label}"
                 return Demographics(**result_dict)
     
+    ## ESRD Models - same for DNE and DI within ESRD V24, but different from V28
+    elif 'ESRD' in model_name:
+        age_ranges = [
+            (0, 34, '0_34'),
+            (35, 44, '35_44'),
+            (45, 54, '45_54'),
+            (55, 59, '55_59'),
+            (60, 64, '60_64'),
+            (65, 69, '65_69'),
+            (70, 74, '70_74'),
+            (75, 79, '75_79'),
+            (80, 84, '80_84'),
+            (85, 89, '85_89'),
+            (90, 94, '90_94'),
+            (95, float('inf'), '95_GT')
+        ]
+
+        # New enrollee logic
+        if new_enrollee:
+            prefix = 'NEF' if std_sex == '2' else 'NEM'
+
+            for low, high, suffix in age_ranges:
+                if low < age <= high:
+                    category = f'{prefix}{suffix}'
+                    break
+            else:
+                raise ValueError(f"Unable to categorize age: {age}")
+
+        result_dict['category'] = category
+        return Demographics(**result_dict)
+
     # V2/V4 Logic (Medicare Population)
     elif version in ('V2', 'V4'):
         if orec is None or orec == '':

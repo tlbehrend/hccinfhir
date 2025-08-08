@@ -46,16 +46,25 @@ def create_demographic_interactions(demographics: Demographics) -> dict:
 def create_dual_interactions(demographics: Demographics) -> dict:
     """Creates dual status interactions"""
     interactions = {}
-    is_female = demographics.category.startswith('F')
-    is_male = demographics.category.startswith('M')
+    ## TB 8/8/25: i commented out the 2 lines below because they fail with new enrollees
+    ##  new_enrollees demographics.category are start with NEF, NEM
+    # is_female = demographics.category.startswith('F')
+    # is_male = demographics.category.startswith('M')
+    is_female = demographics.sex == '2'
+    is_male = not is_female
+
     is_aged = not demographics.non_aged
+
     
     if demographics.fbd:
         interactions.update({
             'FBDual_Female_Aged': int(is_female) * int(is_aged),
             'FBDual_Female_NonAged': int(is_female) * int(not is_aged),
             'FBDual_Male_Aged': int(is_male) * int(is_aged),
-            'FBDual_Male_NonAged': int(is_male) * int(not is_aged)
+            'FBDual_Male_NonAged': int(is_male) * int(not is_aged),
+            ## TB 8/8/2025: added 2 lines below to handle ESRD Model V24 new enrollees
+            f'FBD_NORIGDIS_{demographics.category}': int(demographics.fbd) * int(not demographics.orig_disabled),
+            f'FBD_ORIGDIS_{demographics.category}': int(demographics.fbd) * int(demographics.orig_disabled)
         })
     
     if demographics.pbd:
@@ -63,7 +72,10 @@ def create_dual_interactions(demographics: Demographics) -> dict:
             'PBDual_Female_Aged': int(is_female) * int(is_aged),
             'PBDual_Female_NonAged': int(is_female) * int(not is_aged),
             'PBDual_Male_Aged': int(is_male) * int(is_aged),
-            'PBDual_Male_NonAged': int(is_male) * int(not is_aged)
+            'PBDual_Male_NonAged': int(is_male) * int(not is_aged),
+            ## TB 8/8/2025: added 2 lines below to handle ESRD Model V24 new enrollees
+            f'ND_PBD_NORIGDIS_{demographics.category}': int(not demographics.fbd) * int(not demographics.orig_disabled),
+            f'ND_PBD_ORIGDIS_{demographics.category}': int(not demographics.fbd) * int(demographics.orig_disabled)
         })
         
     return interactions
