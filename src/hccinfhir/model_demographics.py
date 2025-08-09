@@ -147,13 +147,15 @@ def categorize_demographics(age: Union[int, float],
         # New enrollee logic
         if new_enrollee:
             prefix = 'NEF' if std_sex == '2' else 'NEM'
+        else:
+            prefix = 'F' if std_sex == '2' else 'M'
 
-            for low, high, suffix in age_ranges:
-                if low < age <= high:
-                    category = f'{prefix}{suffix}'
-                    break
-            else:
-                raise ValueError(f"Unable to categorize age: {age}")
+        for low, high, suffix in age_ranges:
+            if low < age <= high:
+                category = f'{prefix}{suffix}'
+                break
+        else:
+            raise ValueError(f"Unable to categorize age: {age}")
 
         result_dict['category'] = category
         return Demographics(**result_dict)

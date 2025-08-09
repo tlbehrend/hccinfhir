@@ -27,7 +27,7 @@ def load_hierarchies(hierarchies_file: str) -> Dict[Tuple[str, ModelName], Set[s
     return hierarchies
 
 # Load default mappings from csv file
-hierarchies_file_default = 'ra_hierarchies_2026.csv'
+hierarchies_file_default = 'ra_hierarchies_2025.csv'
 hierarchies_default: Dict[Tuple[str, ModelName], Set[str]] = load_hierarchies(hierarchies_file_default)
 
 def apply_hierarchies(

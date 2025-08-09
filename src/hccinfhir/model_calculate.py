@@ -8,7 +8,7 @@ from hccinfhir.model_interactions import apply_interactions
 from hccinfhir.utils import load_dx_to_cc_mapping, load_is_chronic
 
 # Load default mappings from csv file
-mapping_file_default = 'ra_dx_to_cc_2026.csv'
+mapping_file_default = 'ra_dx_to_cc_2025.csv'
 dx_to_cc_default = load_dx_to_cc_mapping(mapping_file_default)
 
 # Load default mappings from csv file

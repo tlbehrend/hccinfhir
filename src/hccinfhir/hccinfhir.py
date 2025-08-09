@@ -16,8 +16,8 @@ class HCCInFHIR:
     def __init__(self, 
                  filter_claims: bool = True, 
                  model_name: ModelName = "CMS-HCC Model V28",
-                 proc_filtering_filename: ProcFilteringFilename = "ra_eligible_cpt_hcpcs_2026.csv",
-                 dx_cc_mapping_filename: DxCCMappingFilename = "ra_dx_to_cc_2026.csv"):
+                 proc_filtering_filename: ProcFilteringFilename = "ra_eligible_cpt_hcpcs_2025.csv",
+                 dx_cc_mapping_filename: DxCCMappingFilename = "ra_dx_to_cc_2025.csv"):
         """
         Initialize the HCCInFHIR processor.
         
