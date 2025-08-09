@@ -2,9 +2,36 @@ from typing import Set, Dict, Tuple
 import importlib.resources
 from hccinfhir.datamodels import ModelName, ProcFilteringFilename, DxCCMappingFilename
 
+# def load_is_chronic(filename: str) -> Dict[Tuple[str, ModelName], bool]:
+#     """
+#     Load a CSV file into a dictionary mapping (cc, model_name) to a boolean value indicating whether the HCC is chronic.
+#     """
+#     mapping: Dict[Tuple[str, ModelName], bool] = {}
+#     try:
+#         with importlib.resources.open_text('hccinfhir.data', filename) as f:
+#             for line in f.readlines()[1:]:  # Skip header
+#                 try:
+#                     hcc, is_chronic, model_version, model_domain = line.strip().split(',')
+#                     cc = hcc.replace('HCC', '')
+#                     model_name = f"{model_domain} Model {model_version}"
+#                     key = (cc, model_name)
+#                     if key not in mapping:
+#                         mapping[key] = (is_chronic == 'Y')
+#                 except ValueError:
+#                     continue  # Skip malformed lines
+#     except Exception as e:
+#         print(f"Error loading mapping file: {e}")
+#         return {}
+    
+#     return mapping 
+
+
+## TB 8/8/2025: new version of load_is_chronic to fix the issue of CMS-HCC ESRD Model V24 never matching
 def load_is_chronic(filename: str) -> Dict[Tuple[str, ModelName], bool]:
     """
     Load a CSV file into a dictionary mapping (cc, model_name) to a boolean value indicating whether the HCC is chronic.
+    Adds an alias for ESRD models so that lookups for 'CMS-HCC ESRD Model V24' will match
+    rows stored as 'CMS-HCC Model V24' in the CSV.
     """
     mapping: Dict[Tuple[str, ModelName], bool] = {}
     try:
@@ -13,17 +40,27 @@ def load_is_chronic(filename: str) -> Dict[Tuple[str, ModelName], bool]:
                 try:
                     hcc, is_chronic, model_version, model_domain = line.strip().split(',')
                     cc = hcc.replace('HCC', '')
-                    model_name = f"{model_domain} Model {model_version}"
-                    key = (cc, model_name)
-                    if key not in mapping:
-                        mapping[key] = (is_chronic == 'Y')
+
+                    base_model_name = f"{model_domain} Model {model_version}"
+                    model_name_aliases = {base_model_name}
+
+                    # Add ESRD alias if needed
+                    if model_version == 'V24':
+                        model_name_aliases.add(f"{model_domain} ESRD Model {model_version}")
+
+                    for mn in model_name_aliases:
+                        key = (cc, mn)
+                        if key not in mapping:
+                            mapping[key] = (is_chronic == 'Y')
                 except ValueError:
                     continue  # Skip malformed lines
     except Exception as e:
         print(f"Error loading mapping file: {e}")
         return {}
-    
-    return mapping 
+
+    return mapping
+
+
 
 def load_proc_filtering(filename: ProcFilteringFilename) -> Set[str]:
     """
