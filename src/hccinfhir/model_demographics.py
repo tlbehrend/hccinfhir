@@ -151,7 +151,7 @@ def categorize_demographics(age: Union[int, float],
             prefix = 'F' if std_sex == '2' else 'M'
 
         for low, high, suffix in age_ranges:
-            if low < age <= high:
+            if low <= age <= high:
                 category = f'{prefix}{suffix}'
                 break
         else:
@@ -220,7 +220,7 @@ def categorize_demographics(age: Union[int, float],
             ]
             
             for low, high, suffix in age_ranges:
-                if low < age <= high:
+                if low <= age <= high:
                     category = f'{prefix}{suffix}'
                     break
             else:
