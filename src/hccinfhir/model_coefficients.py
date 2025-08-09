@@ -41,26 +41,34 @@ def get_coefficent_prefix(demographics: Demographics,
     """
     # Get base prefix based on model type
     if 'ESRD' in model_name:
-        if demographics.esrd:
-            if demographics.graft_months is not None:
-                # Functioning graft case
-                if demographics.lti:
-                    return 'GI_'
-                if demographics.new_enrollee:
-                    return 'GNE_'
+        # if demographics.esrd:
+        #     if demographics.graft_months is not None:
+        #         # Functioning graft case
+        #         if demographics.lti:
+        #             return 'GI_'
+        #         if demographics.new_enrollee:
+        #             return 'GNE_'
                     
-                # Community functioning graft
-                prefix = 'G'
-                prefix += 'F' if demographics.fbd else 'NP'
-                prefix += 'A' if demographics.age >= 65 else 'N'
-                return prefix + '_'
+        #         # Community functioning graft
+        #         prefix = 'G'
+        #         prefix += 'F' if demographics.fbd else 'NP'
+        #         prefix += 'A' if demographics.age >= 65 else 'N'
+        #         return prefix + '_'
                 
-            # Dialysis case
-            return 'DNE_' if demographics.new_enrollee else 'DI_'
+        #     # Dialysis case
+        #     return 'DNE_' if demographics.new_enrollee else 'DI_'
             
         # Transplant case
         if demographics.graft_months in [1, 2, 3]:
             return f'TRANSPLANT_KIDNEY_ONLY_{demographics.graft_months}M'
+
+        ## TB 8/9/2025: replace above code block with belo for ESRD model
+        ##  - skip the if demographics.esrd statement, as we have plenty of esrd patients who have both orec and crec = 0
+        ##      - logic from model_demographics.categorize_demographics at line 84 (not sure how we could change that logic to be correct, not sure it's even needed)
+        ##  - I don't think the transplant logic is correct, but we don't use that so I haven't tried to address
+                
+        # Dialysis case
+        return 'DNE_' if demographics.new_enrollee else 'DI_'
             
     elif 'RxHCC' in model_name:
         if demographics.lti:
